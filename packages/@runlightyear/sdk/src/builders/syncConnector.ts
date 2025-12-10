@@ -29,7 +29,7 @@ export interface ListParams {
   limit?: number;
   lastExternalId?: string;
   lastExternalUpdatedAt?: string;
-  syncType: "FULL" | "INCREMENTAL";
+  syncType: "FULL" | "INCREMENTAL" | "BASELINE";
 }
 
 // Prevents TypeScript from inferring a type parameter from a usage site.
@@ -94,7 +94,7 @@ export interface ListFilterArgs<TModel = any> {
   obj: SyncObject<TModel>;
   lastExternalId?: string;
   lastExternalUpdatedAt?: string;
-  syncType: "FULL" | "INCREMENTAL";
+  syncType: "FULL" | "INCREMENTAL" | "BASELINE";
 }
 
 export interface ListConfig<TModel = any, TResponse = unknown> {
@@ -119,7 +119,7 @@ export interface ListConfig<TModel = any, TResponse = unknown> {
     limit?: number;
     lastExternalId?: string;
     lastExternalUpdatedAt?: string;
-    syncType: "FULL" | "INCREMENTAL";
+    syncType: "FULL" | "INCREMENTAL" | "BASELINE";
   }) => {
     cursor?: string | null;
     page?: number | null;
@@ -251,7 +251,7 @@ export interface TypedListConfig<TModel, TResponse> {
     page?: number;
     offset?: number;
     limit?: number;
-    syncType: "FULL" | "INCREMENTAL";
+    syncType: "FULL" | "INCREMENTAL" | "BASELINE";
   }) => {
     cursor?: string | null;
     page?: number | null;
@@ -295,7 +295,7 @@ export interface TypeSafeListConfig<
     page?: number;
     offset?: number;
     limit?: number;
-    syncType: "FULL" | "INCREMENTAL";
+    syncType: "FULL" | "INCREMENTAL" | "BASELINE";
   }) => {
     cursor?: string | null;
     page?: number | null;
@@ -597,7 +597,7 @@ export class SyncConnectorBuilder<
               limit?: number;
               lastExternalId?: string;
               lastExternalUpdatedAt?: string;
-              syncType: "FULL" | "INCREMENTAL";
+              syncType: "FULL" | "INCREMENTAL" | "BASELINE";
             }) => {
               cursor?: string | null;
               page?: number | null;
@@ -1075,7 +1075,7 @@ export class SyncModelConnectorBuilder<T = any> {
           page?: number;
           offset?: number;
           limit?: number;
-          syncType: "FULL" | "INCREMENTAL";
+          syncType: "FULL" | "INCREMENTAL" | "BASELINE";
         }) => {
           cursor?: string | null;
           page?: number | null;
@@ -1088,7 +1088,7 @@ export class SyncModelConnectorBuilder<T = any> {
           page?: number;
           offset?: number;
           limit?: number;
-          syncType: "FULL" | "INCREMENTAL";
+          syncType: "FULL" | "INCREMENTAL" | "BASELINE";
         }) => {
           cursor?: string | null;
           page?: number | null;
@@ -2259,7 +2259,7 @@ export class SyncConnector<
    * Sync implementation with async writes for batch operations
    */
   private async syncWithAsyncWrites(
-    type?: "FULL" | "INCREMENTAL"
+    type?: "FULL" | "INCREMENTAL" | "BASELINE"
   ): Promise<void> {
     let changeProcessor: ChangeProcessor | null = null;
 
@@ -2873,7 +2873,7 @@ export class SyncConnector<
     }
   }
 
-  async sync(type?: "FULL" | "INCREMENTAL"): Promise<void> {
+  async sync(type?: "FULL" | "INCREMENTAL" | "BASELINE"): Promise<void> {
     console.info("Using async writes for batch operations");
     return this.syncWithAsyncWrites(type);
   }
@@ -2900,7 +2900,7 @@ export class SyncConnector<
       state,
     } = props;
 
-    const syncType: "FULL" | "INCREMENTAL" = state.type || "FULL";
+    const syncType: "FULL" | "INCREMENTAL" | "BASELINE" = state.type || "FULL";
 
     // Read model watermarks
     let cursor: string | undefined;

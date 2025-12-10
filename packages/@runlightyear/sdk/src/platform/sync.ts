@@ -31,7 +31,7 @@ export async function startSync(props: {
   managedUserId?: string;
   fullSyncFrequency?: number;
   runId?: string;
-  type?: "FULL" | "INCREMENTAL";
+  type?: "FULL" | "INCREMENTAL" | "BASELINE";
   timeout?: number;
 }): Promise<any> {
   const envName = getEnvName();
@@ -191,7 +191,7 @@ export async function getSync(props: { syncId: string }): Promise<any> {
 
 export async function updateSync(props: {
   syncId: string;
-  type?: "FULL" | "INCREMENTAL";
+  type?: "FULL" | "INCREMENTAL" | "BASELINE";
   status?: "PAUSED" | "SUCCEEDED" | "FAILED";
   currentModelName?: string;
   currentDirection?: "PUSH" | "PULL" | null;

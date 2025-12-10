@@ -198,7 +198,7 @@ export class ModelConnectorBuilder<T = any> {
               limit?: number;
               lastExternalId?: string;
               lastExternalUpdatedAt?: string;
-              syncType: "FULL" | "INCREMENTAL";
+              syncType: "FULL" | "INCREMENTAL" | "BASELINE";
             }) => {
               cursor?: string | null;
               page?: number | null;
