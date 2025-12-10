@@ -20,7 +20,7 @@ export async function saveCache(props: SaveCacheProps) {
 
   await baseRequest({
     method: "PATCH",
-    uri: `/api/v1/envs/${envName}/caches/${key}`,
+    uri: `/api/v1/projects/default/envs/${envName}/caches/${key}`,
     data: {
       value,
     },
@@ -55,7 +55,7 @@ export async function getCache(props: GetCacheProps): Promise<string> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/caches/${key}`,
+    uri: `/api/v1/projects/default/envs/${envName}/caches/${key}`,
   });
 
   if (!response.ok) {

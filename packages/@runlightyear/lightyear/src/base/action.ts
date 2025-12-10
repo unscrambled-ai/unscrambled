@@ -333,7 +333,7 @@ export async function getActionData(name: string): Promise<ActionData> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/actions/${name}/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/actions/${name}/data`,
   });
 
   const data = <ActionData>await response.json();

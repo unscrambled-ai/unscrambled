@@ -16,7 +16,7 @@ export async function deliverLocalResponse(props: DeliverAuthRequestUrlProps) {
   const apiKey = getApiKey();
 
   const deliveryResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/local-responses/${localResponseId}`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/local-responses/${localResponseId}`,
     {
       method: "PATCH",
       headers: {

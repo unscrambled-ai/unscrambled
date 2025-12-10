@@ -478,7 +478,7 @@ class LogCapture {
       return; // Skip upload if no API key
     }
 
-    const url = `${this.config.baseUrl}/api/v1/envs/${this.config.environment}/logs`;
+    const url = `${this.config.baseUrl}/api/v1/projects/default/envs/${this.config.environment}/logs`;
     const body = JSON.stringify(payload);
 
     const maxAttempts = 5; // total attempts including first

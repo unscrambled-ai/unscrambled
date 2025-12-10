@@ -7,7 +7,7 @@ export default async function fetchDeploy(envName: string, deployId: string) {
   const apiKey = getApiKey();
 
   const response = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/deploys/${deployId}`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/deploys/${deployId}`,
     {
       method: "GET",
       headers: {

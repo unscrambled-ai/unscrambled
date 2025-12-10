@@ -180,7 +180,7 @@ describe("LogCapture", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://app.runlightyear.com/api/v1/envs/test/logs",
+        "https://app.runlightyear.com/api/v1/projects/default/envs/test/logs",
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({

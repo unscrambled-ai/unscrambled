@@ -11,7 +11,7 @@ export default async function requestDeploy(envName: string) {
   const tgz = await fse.readFile(TEMP_TGZ_FILE);
 
   const response = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/deploy/request`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/deploy/request`,
     {
       method: "POST",
       headers: {

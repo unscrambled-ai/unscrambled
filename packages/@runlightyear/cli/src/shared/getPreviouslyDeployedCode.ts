@@ -19,7 +19,7 @@ export default async function getPreviouslyDeployedCode(
   console.debug("Fetching subscription deploy code for", webhookName);
 
   const response = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/${webhookName}/subscription/deploy/code`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription/deploy/code`,
     {
       method: "GET",
       headers: {

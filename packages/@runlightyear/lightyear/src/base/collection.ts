@@ -95,7 +95,7 @@ export async function getModels(
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/collections/${collectionName}/models`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collectionName}/models`,
   });
 
   if (response.ok) {
@@ -159,7 +159,7 @@ export async function retrieveDelta<ModelObjectData>(
       } catch {}
       const response = await baseRequest({
         method: "POST",
-        uri: `/api/v1/envs/${envName}/collections/${collectionName}/delta`,
+        uri: `/api/v1/projects/default/envs/${envName}/collections/${collectionName}/delta`,
         data: {
           syncId,
           modelName,
@@ -261,7 +261,7 @@ export async function startSync(props: StartSyncProps) {
   try {
     const response = await baseRequest({
       method: "POST",
-      uri: `/api/v1/envs/${envName}/syncs`,
+      uri: `/api/v1/projects/default/envs/${envName}/syncs`,
       data: {
         collectionName,
         appName,
@@ -314,7 +314,7 @@ export async function getSync(props: GetSyncProps) {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/syncs/${syncId}`,
+    uri: `/api/v1/projects/default/envs/${envName}/syncs/${syncId}`,
   });
 
   if (response.ok) {
@@ -339,7 +339,7 @@ export async function updateSync(props: UpdateSyncProps) {
 
   const response = await baseRequest({
     method: "PATCH",
-    uri: `/api/v1/envs/${envName}/syncs/${syncId}`,
+    uri: `/api/v1/projects/default/envs/${envName}/syncs/${syncId}`,
     data: {
       type,
       status,
@@ -388,7 +388,7 @@ export async function upsertObject(props: UpsertObjectProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/collections/${collection}/models/${model}/objects/upsert`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collection}/models/${model}/objects/upsert`,
     data: {
       syncId,
       appName: app,
@@ -452,7 +452,7 @@ export async function upsertObjectBatch(props: UpsertObjectBatchProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/collections/${collectionName}/models/${modelName}/objects/upsert/batch`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collectionName}/models/${modelName}/objects/upsert/batch`,
     data: {
       syncId,
       appName: app,
@@ -491,7 +491,7 @@ export async function confirmChange(props: ConfirmChangeProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/syncs/${syncId}/changes/${changeId}/confirm`,
+    uri: `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/changes/${changeId}/confirm`,
     data: {
       externalId,
       externalUpdatedAt,
@@ -527,7 +527,7 @@ export async function confirmChangeBatch(props: ConfirmChangeBatchProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/syncs/${syncId}/changes/batch/confirm`,
+    uri: `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/changes/batch/confirm`,
     data: {
       changes,
       async,
@@ -569,7 +569,7 @@ export async function confirmObjectBatch(props: ConfirmObjectBatchProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/collections/${collection}/models/${model}/objects/confirm/batch`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collection}/models/${model}/objects/confirm/batch`,
     data: {
       syncId,
       appName: app,
@@ -609,7 +609,7 @@ export async function deleteObject(props: DeleteObjectProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/collections/${collection}/models/${model}/objects/delete`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collection}/models/${model}/objects/delete`,
     data: {
       customAppName: customApp,
       managedUserExternalId,
@@ -644,7 +644,7 @@ export async function getLastUpdatedObject(props: GetLastUpdatedObjectProps) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/collections/${collection}/models/${model}/objects/last-updated`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collection}/models/${model}/objects/last-updated`,
     data: {
       appName: app,
       customAppName: customApp,
@@ -670,7 +670,7 @@ export async function detectHardDeletes(props: DetectHardDeletesProps) {
 
   return baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/collections/${collection}/models/${model}/objects/detect-hard-deletes`,
+    uri: `/api/v1/projects/default/envs/${envName}/collections/${collection}/models/${model}/objects/detect-hard-deletes`,
     data: {
       remainingIds,
     },
@@ -682,7 +682,7 @@ export async function pauseSync(syncId: string) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/syncs/${syncId}/pause`,
+    uri: `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/pause`,
   });
 
   if (response.ok) {
@@ -699,6 +699,6 @@ export async function finishSync(syncId: string) {
 
   return baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/syncs/${syncId}/finish`,
+    uri: `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/finish`,
   });
 }

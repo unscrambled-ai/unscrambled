@@ -33,7 +33,7 @@ export default async function updateRefreshSubscriptionResult(
   console.debug("about to patch activity", activityId);
 
   const activityResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/${webhookName}/subscription/activities/${activityId}`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription/activities/${activityId}`,
     {
       method: "PATCH",
       headers: {
@@ -62,7 +62,7 @@ export default async function updateRefreshSubscriptionResult(
   }
 
   const subscriptionResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/${webhookName}/subscription`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription`,
     {
       method: "PATCH",
       headers: {

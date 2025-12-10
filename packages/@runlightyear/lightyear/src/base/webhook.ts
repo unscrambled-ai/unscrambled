@@ -362,7 +362,7 @@ export async function deployWebhook(
   const { name } = props;
 
   const response = await baseRequest({
-    uri: `/api/v1/envs/${envName}/webhooks`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks`,
     data: {
       name,
     },
@@ -402,7 +402,7 @@ export async function getWebhookData(name: string): Promise<WebhookData> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/webhooks/${name}/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks/${name}/data`,
   });
 
   const data = <WebhookData>await response.json();

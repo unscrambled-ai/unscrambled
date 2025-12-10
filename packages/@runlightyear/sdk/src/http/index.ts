@@ -190,7 +190,7 @@ export const httpRequest: HttpRequest = async (props) => {
   do {
     try {
       // Use the same proxy endpoint as the lightyear package
-      const proxyUrl = `${baseUrl}/api/v1/envs/${envName}/http-request`;
+      const proxyUrl = `${baseUrl}/api/v1/projects/default/envs/${envName}/http-request`;
 
       // Normalize json/data/body for proxy: prefer explicit body, then json, then data
       const {
@@ -423,7 +423,7 @@ export const batchHttpRequest: BatchHttpRequest = async (props) => {
     );
   }
 
-  const batchUrl = `${baseUrl}/api/v1/envs/${envName}/http-request/batch`;
+  const batchUrl = `${baseUrl}/api/v1/projects/default/envs/${envName}/http-request/batch`;
 
   // Prepare batch requests - convert to new API format
   const batchRequests = props.requests.map((request) => {

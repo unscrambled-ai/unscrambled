@@ -22,7 +22,7 @@ export default async function createAuthorizerActivity(
   const apiKey = getApiKey();
 
   const activityResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/custom-apps/${customAppName}/authorizer/activities`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/authorizer/activities`,
     {
       method: "POST",
       headers: {

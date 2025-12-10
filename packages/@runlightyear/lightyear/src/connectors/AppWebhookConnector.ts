@@ -65,7 +65,7 @@ export abstract class AppWebhookConnector extends AuthConnector {
 
     const response = await baseRequest({
       method: "PATCH",
-      uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/subscription`,
+      uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription`,
       data: {
         ...additionalData,
       },
@@ -88,7 +88,7 @@ export abstract class AppWebhookConnector extends AuthConnector {
 
     return await baseRequest({
       method: "PATCH",
-      uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/subscription`,
+      uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription`,
       data: {
         appWebhook: null,
         customAppWebhook: null,

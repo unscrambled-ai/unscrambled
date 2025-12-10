@@ -32,7 +32,7 @@ export default async function runAction({
   process.env.ENV_NAME = envName;
 
   const startResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/runs/${runId}`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/runs/${runId}`,
     {
       method: "PATCH",
       headers: {
@@ -132,7 +132,7 @@ export default async function runAction({
   // Avoid overriding that state with a PATCH here.
   if (!isRerun) {
     const response = await fetch(
-      `${baseUrl}/api/v1/envs/${envName}/runs/${runId}`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/runs/${runId}`,
       {
         method: "PATCH",
         headers: {

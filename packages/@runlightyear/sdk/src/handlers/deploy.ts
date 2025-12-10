@@ -425,7 +425,7 @@ async function postDeploymentData(
 
   // BASE_URL should always be available now with the default fallback
 
-  const url = `${baseUrl}/api/v1/envs/${envName}/deploy`;
+  const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/deploy`;
   console.log(`🎯 Target deployment URL: ${url}`);
 
   try {

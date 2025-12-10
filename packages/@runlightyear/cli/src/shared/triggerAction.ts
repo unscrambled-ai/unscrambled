@@ -28,7 +28,7 @@ export async function getManagedUsers(
 
   try {
     const response = await fetch(
-      `${baseUrl}/api/v1/envs/${envName}/managed-users`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -67,7 +67,7 @@ export async function triggerAction(
 
   try {
     const response = await fetch(
-      `${baseUrl}/api/v1/envs/${envName}/actions/${actionName}/trigger`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/actions/${actionName}/trigger`,
       {
         method: "POST",
         headers: {

@@ -35,7 +35,7 @@ export default async function updateSubscribeResult(
   const apiKey = getApiKey();
 
   const activityResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/${webhookName}/subscription/activities/${subscriptionActivityId}`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription/activities/${subscriptionActivityId}`,
     {
       method: "PATCH",
       headers: {
@@ -64,7 +64,7 @@ export default async function updateSubscribeResult(
   }
 
   const subscriptionResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/${webhookName}/subscription`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription`,
     {
       method: "PATCH",
       headers: {

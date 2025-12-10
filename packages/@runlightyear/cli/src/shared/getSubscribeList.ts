@@ -9,7 +9,7 @@ export default async function getSubscribeList(environment?: string) {
   const apiKey = getApiKey();
 
   const response = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/subscribe-list`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/subscribe-list`,
     {
       method: "GET",
       headers: {

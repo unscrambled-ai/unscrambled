@@ -27,7 +27,7 @@ export async function getVariableData(name: string): Promise<VariableData> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/variables/${name}/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/variables/${name}/data`,
   });
 
   const data = (await response.json()) as VariableData;
@@ -54,7 +54,7 @@ export async function setVariable(name: string, value: string | null) {
   if (actionName) {
     return await baseRequest({
       method: "PATCH",
-      uri: `/api/v1/envs/${envName}/actions/${actionName}/variables/${name}`,
+      uri: `/api/v1/projects/default/envs/${envName}/actions/${actionName}/variables/${name}`,
       data: {
         value,
       },
@@ -62,7 +62,7 @@ export async function setVariable(name: string, value: string | null) {
   } else if (webhookName) {
     return await baseRequest({
       method: "PATCH",
-      uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/variables/${name}`,
+      uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/variables/${name}`,
       data: {
         value,
       },

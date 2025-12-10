@@ -30,7 +30,7 @@ export async function execLocalHttpRequest(props: ExecLocalHttpRequestProps) {
   try {
     // 1. Fetch request details
     const requestResponse = await fetch(
-      `${baseUrl}/api/v1/envs/${envName}/http-requests/${httpRequestId}/raw`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/http-requests/${httpRequestId}/raw`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -111,7 +111,7 @@ async function sendProxyResponse(
   );
 
   const deliveryResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/http-requests/${httpRequestId}/dev-proxy-response`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/http-requests/${httpRequestId}/dev-proxy-response`,
     {
       method: "PATCH",
       headers: {

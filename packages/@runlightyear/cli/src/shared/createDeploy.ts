@@ -22,7 +22,7 @@ export default async function createDeploy(
   let response;
 
   try {
-    response = await fetch(`${baseUrl}/api/v1/envs/${envName}/deploys`, {
+    response = await fetch(`${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
