@@ -1209,3 +1209,465 @@ syncs
       }
     },
   );
+
+// Trigger a sync
+syncs
+  .command("trigger")
+  .description("Trigger a new sync for an integration")
+  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(new Option("-i, --integration <name>", "Integration name (required)").makeOptionMandatory())
+  .addOption(new Option("-u, --user <id>", "Managed user external ID (or 'ALL' for all users)").makeOptionMandatory())
+  .addOption(new Option("-t, --type <type>", "Sync type").choices(["FULL", "INCREMENTAL"]))
+  .addOption(new Option("--wait", "Wait for sync to complete"))
+  .addOption(
+    new Option("-o, --output <format>", "Output format")
+      .choices(["text", "json"])
+      .default("text"),
+  )
+  .action(
+    async (options: {
+      env?: string;
+      environment?: string;
+      integration: string;
+      user: string;
+      type?: "FULL" | "INCREMENTAL";
+      wait?: boolean;
+      output: OutputFormat;
+    }) => {
+      requireAuth();
+
+      let envName: string;
+      try {
+        envName = resolveEnvName(getEnvOption(options));
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      try {
+        const baseUrl = getBaseUrl();
+        const apiKey = getApiKey();
+
+        // Build request body
+        const body: Record<string, string> = {
+          integrationName: options.integration,
+        };
+
+        if (options.user === "ALL") {
+          body.managedUserId = "ALL";
+        } else {
+          body.managedUserExternalId = options.user;
+        }
+
+        if (options.type) {
+          body.type = options.type;
+        }
+
+        terminal(`Triggering ${options.type ?? "auto"} sync for ${options.integration}...\n`);
+
+        const response = await fetch(
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/syncs`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({})) as { message?: string };
+          terminal.red(`Trigger sync failed: ${errorData.message ?? response.statusText}\n`);
+          process.exitCode = 1;
+          return;
+        }
+
+        const result = await response.json() as {
+          message: string;
+          syncId?: string;
+          syncIds?: string[];
+          syncCount?: number;
+        };
+
+        if (options.output === "json") {
+          process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        } else {
+          terminal.green(`${result.message}\n`);
+          if (result.syncId) {
+            terminal(`Sync ID: ${result.syncId}\n`);
+            terminal.gray(`\nTip: Run 'lightyear syncs watch ${result.syncId} -e ${envName}' to monitor progress\n`);
+          }
+          if (result.syncIds && result.syncIds.length > 0) {
+            terminal(`Sync IDs: ${result.syncIds.length} created\n`);
+            for (const id of result.syncIds.slice(0, 5)) {
+              terminal.gray(`  ${id}\n`);
+            }
+            if (result.syncIds.length > 5) {
+              terminal.gray(`  ... and ${result.syncIds.length - 5} more\n`);
+            }
+          }
+        }
+
+        // Optionally wait for completion
+        if (options.wait && result.syncId) {
+          terminal("\nWaiting for sync to complete...\n");
+          
+          const pollInterval = 2000; // 2 seconds
+          const maxWait = 30 * 60 * 1000; // 30 minutes
+          const startTime = Date.now();
+
+          while (Date.now() - startTime < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+            const syncResponse = await fetch(
+              `${baseUrl}/api/v1/projects/default/envs/${envName}/syncs/${result.syncId}`,
+              {
+                headers: { Authorization: `Bearer ${apiKey}` },
+              },
+            );
+
+            if (!syncResponse.ok) {
+              terminal.yellow(`Warning: Could not fetch sync status\n`);
+              continue;
+            }
+
+            const sync = await syncResponse.json() as {
+              status: string;
+              type: string;
+              total: number;
+              succeeded: number;
+              failed: number;
+              error?: string;
+            };
+
+            // Check if terminal state
+            if (["SUCCEEDED", "FAILED", "CANCELED"].includes(sync.status)) {
+              terminal("\n");
+              if (sync.status === "SUCCEEDED") {
+                terminal.green(`Sync completed successfully!\n`);
+              } else if (sync.status === "FAILED") {
+                terminal.red(`Sync failed: ${sync.error ?? "unknown error"}\n`);
+              } else {
+                terminal.yellow(`Sync was canceled\n`);
+              }
+              terminal(`Items: ${sync.total} total, ${sync.succeeded} succeeded, ${sync.failed} failed\n`);
+              break;
+            }
+
+            // Show progress
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            terminal.eraseLine();
+            terminal.column(0);
+            terminal(`[${elapsed}s] ${sync.status} - ${sync.succeeded}/${sync.total} items`);
+          }
+        }
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+      }
+    },
+  );
+
+// Pause sync scheduling
+syncs
+  .command("scheduling:pause")
+  .description("Pause sync scheduling - no new syncs will be created, but existing syncs will complete")
+  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .action(
+    async (options: {
+      env?: string;
+      environment?: string;
+    }) => {
+      requireAuth();
+
+      let envName: string;
+      try {
+        envName = resolveEnvName(getEnvOption(options));
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      try {
+        const baseUrl = getBaseUrl();
+        const apiKey = getApiKey();
+
+        const response = await fetch(
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/sync-scheduling/pause`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({})) as { message?: string };
+          terminal.red(`Failed to pause scheduling: ${errorData.message ?? response.statusText}\n`);
+          process.exitCode = 1;
+          return;
+        }
+
+        terminal.green(`Sync scheduling paused for ${envName}\n`);
+        terminal.gray(`No new syncs will be created. Existing syncs will complete.\n`);
+        terminal.gray(`Use 'lightyear syncs scheduling:resume -e ${envName}' to resume.\n`);
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+      }
+    },
+  );
+
+// Resume sync scheduling
+syncs
+  .command("scheduling:resume")
+  .description("Resume sync scheduling - new syncs will be created according to schedules")
+  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .action(
+    async (options: {
+      env?: string;
+      environment?: string;
+    }) => {
+      requireAuth();
+
+      let envName: string;
+      try {
+        envName = resolveEnvName(getEnvOption(options));
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      try {
+        const baseUrl = getBaseUrl();
+        const apiKey = getApiKey();
+
+        const response = await fetch(
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/sync-scheduling/resume`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({})) as { message?: string };
+          terminal.red(`Failed to resume scheduling: ${errorData.message ?? response.statusText}\n`);
+          process.exitCode = 1;
+          return;
+        }
+
+        terminal.green(`Sync scheduling resumed for ${envName}\n`);
+        terminal.gray(`New syncs will be created according to configured schedules.\n`);
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+      }
+    },
+  );
+
+// Watch a sync with live-updating display
+syncs
+  .command("watch")
+  .description("Watch a sync with live-updating progress display")
+  .argument("<syncId>", "Sync ID")
+  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(new Option("--poll-interval <ms>", "Polling interval in milliseconds").default("1000"))
+  .addOption(new Option("--no-clear", "Don't clear screen between updates"))
+  .action(
+    async (
+      syncId: string,
+      options: {
+        env?: string;
+        environment?: string;
+        pollInterval: string;
+        clear: boolean;
+      },
+    ) => {
+      requireAuth();
+
+      let envName: string;
+      try {
+        envName = resolveEnvName(getEnvOption(options));
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const pollIntervalMs = Math.max(Number(options.pollInterval), 250);
+      const startTime = Date.now();
+      let lastTotal = 0;
+      let lastTime = startTime;
+      let rate = 0;
+
+      const terminalStatuses = new Set([
+        "SUCCEEDED",
+        "PARTIAL",
+        "FAILED",
+        "CANCELED",
+        "SKIPPED",
+      ]);
+
+      const formatDuration = (ms: number): string => {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        if (hours > 0) {
+          return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+        } else if (minutes > 0) {
+          return `${minutes}m ${seconds % 60}s`;
+        }
+        return `${seconds}s`;
+      };
+
+      const renderProgress = (sync: any) => {
+        const total = sync.total ?? 0;
+        const succeeded = sync.succeeded ?? 0;
+        const failed = sync.failed ?? 0;
+        const processing = sync.processing ?? 0;
+        const canceled = sync.canceled ?? 0;
+        const completed = succeeded + failed + canceled;
+
+        // Calculate rate
+        const now = Date.now();
+        const timeDelta = (now - lastTime) / 1000;
+        if (timeDelta >= 1 && total > lastTotal) {
+          rate = (total - lastTotal) / timeDelta;
+          lastTotal = total;
+          lastTime = now;
+        }
+
+        // Status color
+        const statusColor =
+          sync.status === "SUCCEEDED" ? terminal.green :
+          sync.status === "FAILED" ? terminal.red :
+          sync.status === "CANCELED" ? terminal.yellow :
+          sync.status === "RUNNING" ? terminal.cyan :
+          sync.status === "FINISHING" ? terminal.magenta :
+          terminal;
+
+        // Current operation
+        const currentModel = sync.currentModel?.name ?? sync.currentModelName ?? "-";
+        const currentDirection = sync.currentDirection ?? "-";
+
+        // Elapsed time
+        const elapsed = formatDuration(now - startTime);
+
+        // Clear screen if enabled
+        if (options.clear) {
+          terminal.clear();
+          terminal.moveTo(1, 1);
+        }
+
+        // Render
+        terminal.bold(`Sync ${syncId.substring(0, 8)}...\n\n`);
+
+        terminal("Status: ");
+        statusColor.bold(`${sync.status}`);
+        terminal(`  Type: ${sync.type ?? "?"}\n`);
+
+        terminal(`Current: ${currentModel} / ${currentDirection}\n\n`);
+
+        // Only show progress bar during FINISHING when we know the actual total
+        if (sync.status === "FINISHING" || terminalStatuses.has(sync.status)) {
+          const barWidth = 30;
+          const progress = total > 0 ? completed / total : 0;
+          const filledWidth = Math.round(progress * barWidth);
+          const emptyWidth = barWidth - filledWidth;
+          const progressBar = "█".repeat(filledWidth) + "░".repeat(emptyWidth);
+          const percent = (progress * 100).toFixed(1);
+          terminal(`Progress: [${progressBar}] ${percent}%\n\n`);
+        }
+
+        terminal.bold("Items:\n");
+        terminal(`  Total:      ${total.toLocaleString()}\n`);
+        terminal.green(`  Succeeded:  ${succeeded.toLocaleString()}\n`);
+        terminal.cyan(`  Processing: ${processing.toLocaleString()}\n`);
+        if (failed > 0) {
+          terminal.red(`  Failed:     ${failed.toLocaleString()}\n`);
+        }
+        if (canceled > 0) {
+          terminal.yellow(`  Canceled:   ${canceled.toLocaleString()}\n`);
+        }
+
+        terminal(`\nElapsed: ${elapsed}`);
+        if (rate > 0) {
+          terminal(`  |  Rate: ~${rate.toFixed(0)} items/s`);
+        }
+        terminal("\n");
+
+        if (sync.error) {
+          terminal.red(`\nError: ${sync.error}\n`);
+        }
+
+        // Show model progress if available
+        if (sync.modelStatuses && Object.keys(sync.modelStatuses).length > 0) {
+          terminal("\n");
+          terminal.bold("Models:\n");
+          for (const [modelName, ms] of Object.entries(sync.modelStatuses) as Array<[string, any]>) {
+            const flags = [ms?.readOnly ? "R" : null, ms?.writeOnly ? "W" : null]
+              .filter(Boolean)
+              .join("");
+            const flagStr = flags ? ` (${flags})` : "";
+            const hasProgress = ms?.cursor || ms?.page || ms?.lastExternalId;
+            const indicator = hasProgress ? "✓" : "·";
+            terminal(`  ${indicator} ${modelName}${flagStr}\n`);
+          }
+        }
+
+        if (!options.clear) {
+          terminal("\n---\n");
+        }
+      };
+
+      terminal.bold("Starting watch...\n");
+      terminal.gray("Press Ctrl+C to stop\n\n");
+
+      // Handle Ctrl+C gracefully
+      process.on("SIGINT", () => {
+        terminal("\n\nWatch stopped.\n");
+        process.exit(0);
+      });
+
+      while (true) {
+        try {
+          const result = await fetchSync(envName, syncId);
+
+          renderProgress(result);
+
+          if (terminalStatuses.has(result.status)) {
+            terminal("\n");
+            if (result.status === "SUCCEEDED") {
+              terminal.green.bold("✓ Sync completed successfully!\n");
+            } else if (result.status === "PARTIAL") {
+              terminal.yellow.bold("⚠ Sync completed with some failures\n");
+            } else if (result.status === "FAILED") {
+              terminal.red.bold("✗ Sync failed\n");
+              process.exitCode = 1;
+            } else if (result.status === "CANCELED") {
+              terminal.yellow.bold("⊘ Sync was canceled\n");
+            } else if (result.status === "SKIPPED") {
+              terminal.gray.bold("○ Sync was skipped\n");
+            }
+            break;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        } catch (error) {
+          terminal.red(`\nError fetching sync: ${error instanceof Error ? error.message : String(error)}\n`);
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs * 2));
+        }
+      }
+    },
+  );
