@@ -125,7 +125,7 @@ envs
           if (status.runningSyncs > 0) {
             terminal(`\nActive Syncs:\n`);
             for (const sync of syncsData.syncs.slice(0, 5)) {
-              terminal(`  - ${sync.id.substring(0, 8)}... ${sync.collection?.name || "?"} [${sync.status}]\n`);
+              terminal(`  - ${sync.id} ${sync.collection?.name || "?"} [${sync.status}]\n`);
             }
             if (syncsData.syncs.length > 5) {
               terminal.gray(`  ... and ${syncsData.syncs.length - 5} more\n`);

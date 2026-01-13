@@ -103,7 +103,7 @@ runs
               r.status === "CANCELED" || r.status === "SKIPPED" ? terminal.yellow :
               terminal;
 
-            terminal.bold(`${r.id.substring(0, 8)}...`);
+            terminal.bold(`${r.id}`);
             terminal(` ${r.action?.name || "?"} `);
             statusColor(`${r.status}`);
             if (r.managedUser) {

@@ -945,6 +945,23 @@ syncs
             return;
           }
 
+          // Helper for relative time
+          const formatRelativeTime = (dateStr: string): string => {
+            const date = new Date(dateStr);
+            const now = Date.now();
+            const diffMs = now - date.getTime();
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffSec < 60) return "just now";
+            if (diffMin < 60) return `${diffMin}m ago`;
+            if (diffHour < 24) return `${diffHour}h ago`;
+            if (diffDay < 7) return `${diffDay}d ago`;
+            return date.toLocaleDateString();
+          };
+
           terminal.bold(`Recent syncs:\n\n`);
           const limit = parseInt(options.limit, 10);
           for (const s of syncs.slice(0, limit)) {
@@ -956,16 +973,18 @@ syncs
               s.status === "CANCELED" ? terminal.yellow :
               terminal;
 
-            terminal.bold(`${s.id.substring(0, 8)}...`);
-            terminal(` ${s.type || "?"} `);
+            // Show full ID so it can be copied for watch command
+            terminal.bold(`${s.id}`);
+            terminal("\n");
+            terminal(`  ${s.type || "?"} `);
             statusColor(`${s.status}`);
             terminal(` ${integration}`);
             if (s.managedUser) {
               terminal.gray(` (${s.managedUser.displayName || s.managedUser.externalId})`);
             }
             terminal("\n");
-            terminal.gray(`  collection: ${s.collection?.name || "?"} | items: ${s.total || 0} (${s.succeeded || 0} ok, ${s.failed || 0} failed)\n`);
-            terminal.gray(`  created: ${s.createdAt}\n`);
+            terminal.gray(`  items: ${s.total || 0} (${s.succeeded || 0} ok, ${s.failed || 0} failed)`);
+            terminal.gray(` | ${formatRelativeTime(s.createdAt)}\n`);
             if (s.error) {
               terminal.red(`  error: ${s.error}\n`);
             }
@@ -1162,7 +1181,7 @@ syncs
                   sync.status === "CONTINUING" ? terminal.yellow :
                   sync.status === "DELAYED" ? terminal.yellow :
                   terminal;
-                terminal(`    ${sync.id.substring(0, 8)}... `);
+                terminal(`    ${sync.id} `);
                 statusColor(`${sync.status}`);
                 terminal(` ${sync.type} ${sync.integrationName || "(unknown)"}`);
                 if (sync.managedUserExternalId) {
@@ -1190,7 +1209,7 @@ syncs
             for (const sync of result.stuckSyncs) {
               const mins = Math.floor(sync.stuckDurationSeconds / 60);
               const secs = sync.stuckDurationSeconds % 60;
-              terminal.red(`    ${sync.id.substring(0, 8)}... ${sync.status} ${sync.type}`);
+              terminal.red(`    ${sync.id} ${sync.status} ${sync.type}`);
               terminal.red(` (no activity for ${mins}m ${secs}s)\n`);
               if (sync.integrationName) {
                 terminal.gray(`      integration: ${sync.integrationName}\n`);
@@ -1510,6 +1529,7 @@ syncs
       let lastTotal = 0;
       let lastTime = startTime;
       let rate = 0;
+      let lastLineCount = 0;
 
       const terminalStatuses = new Set([
         "SUCCEEDED",
@@ -1536,26 +1556,18 @@ syncs
         const succeeded = sync.succeeded ?? 0;
         const failed = sync.failed ?? 0;
         const processing = sync.processing ?? 0;
+        const queued = sync.queued ?? 0;
         const canceled = sync.canceled ?? 0;
         const completed = succeeded + failed + canceled;
 
-        // Calculate rate
+        // Calculate rate based on succeeded items (more accurate than total)
         const now = Date.now();
         const timeDelta = (now - lastTime) / 1000;
-        if (timeDelta >= 1 && total > lastTotal) {
-          rate = (total - lastTotal) / timeDelta;
-          lastTotal = total;
+        if (timeDelta >= 1 && succeeded > lastTotal) {
+          rate = (succeeded - lastTotal) / timeDelta;
+          lastTotal = succeeded;
           lastTime = now;
         }
-
-        // Status color
-        const statusColor =
-          sync.status === "SUCCEEDED" ? terminal.green :
-          sync.status === "FAILED" ? terminal.red :
-          sync.status === "CANCELED" ? terminal.yellow :
-          sync.status === "RUNNING" ? terminal.cyan :
-          sync.status === "FINISHING" ? terminal.magenta :
-          terminal;
 
         // Current operation
         const currentModel = sync.currentModel?.name ?? sync.currentModelName ?? "-";
@@ -1564,71 +1576,112 @@ syncs
         // Elapsed time
         const elapsed = formatDuration(now - startTime);
 
-        // Clear screen if enabled
-        if (options.clear) {
-          terminal.clear();
-          terminal.moveTo(1, 1);
-        }
+        // Build all lines first, then render
+        const lines: Array<{ text: string; color?: "green" | "red" | "yellow" | "cyan" | "magenta" | "gray" }> = [];
 
-        // Render
-        terminal.bold(`Sync ${syncId.substring(0, 8)}...\n\n`);
+        lines.push({ text: `Sync ${syncId}` });
+        lines.push({ text: "" });
+        
+        // Status line with color indicator
+        const statusIndicator = 
+          sync.status === "SUCCEEDED" ? "✓" :
+          sync.status === "FAILED" ? "✗" :
+          sync.status === "CANCELED" ? "⊘" :
+          sync.status === "RUNNING" ? "●" :
+          sync.status === "FINISHING" ? "◐" :
+          "○";
+        lines.push({ text: `${statusIndicator} ${sync.status}  |  ${sync.type ?? "?"}  |  ${currentModel} / ${currentDirection}` });
+        lines.push({ text: "" });
 
-        terminal("Status: ");
-        statusColor.bold(`${sync.status}`);
-        terminal(`  Type: ${sync.type ?? "?"}\n`);
-
-        terminal(`Current: ${currentModel} / ${currentDirection}\n\n`);
-
-        // Only show progress bar during FINISHING when we know the actual total
-        if (sync.status === "FINISHING" || terminalStatuses.has(sync.status)) {
-          const barWidth = 30;
-          const progress = total > 0 ? completed / total : 0;
+        // Progress bar - show during FINISHING or terminal states
+        const showProgress = sync.status === "FINISHING" || terminalStatuses.has(sync.status);
+        if (showProgress && total > 0) {
+          const barWidth = 40;
+          const progress = completed / total;
           const filledWidth = Math.round(progress * barWidth);
           const emptyWidth = barWidth - filledWidth;
           const progressBar = "█".repeat(filledWidth) + "░".repeat(emptyWidth);
           const percent = (progress * 100).toFixed(1);
-          terminal(`Progress: [${progressBar}] ${percent}%\n\n`);
+          lines.push({ text: `[${progressBar}] ${percent}%` });
+        } else {
+          lines.push({ text: `[waiting for totals...]` });
         }
+        lines.push({ text: "" });
 
-        terminal.bold("Items:\n");
-        terminal(`  Total:      ${total.toLocaleString()}\n`);
-        terminal.green(`  Succeeded:  ${succeeded.toLocaleString()}\n`);
-        terminal.cyan(`  Processing: ${processing.toLocaleString()}\n`);
-        if (failed > 0) {
-          terminal.red(`  Failed:     ${failed.toLocaleString()}\n`);
-        }
-        if (canceled > 0) {
-          terminal.yellow(`  Canceled:   ${canceled.toLocaleString()}\n`);
-        }
+        // Item counts - always show all on one line for consistency
+        let itemsLine = `Items: ${succeeded.toLocaleString()} ok`;
+        if (processing > 0) itemsLine += ` | ${processing.toLocaleString()} processing`;
+        if (queued > 0) itemsLine += ` | ${queued.toLocaleString()} queued`;
+        if (failed > 0) itemsLine += ` | ${failed.toLocaleString()} failed`;
+        if (canceled > 0) itemsLine += ` | ${canceled.toLocaleString()} canceled`;
+        itemsLine += ` | ${total.toLocaleString()} total`;
+        lines.push({ text: itemsLine });
 
-        terminal(`\nElapsed: ${elapsed}`);
+        // Elapsed and rate
+        let elapsedLine = `Elapsed: ${elapsed}`;
         if (rate > 0) {
-          terminal(`  |  Rate: ~${rate.toFixed(0)} items/s`);
-        }
-        terminal("\n");
-
-        if (sync.error) {
-          terminal.red(`\nError: ${sync.error}\n`);
-        }
-
-        // Show model progress if available
-        if (sync.modelStatuses && Object.keys(sync.modelStatuses).length > 0) {
-          terminal("\n");
-          terminal.bold("Models:\n");
-          for (const [modelName, ms] of Object.entries(sync.modelStatuses) as Array<[string, any]>) {
-            const flags = [ms?.readOnly ? "R" : null, ms?.writeOnly ? "W" : null]
-              .filter(Boolean)
-              .join("");
-            const flagStr = flags ? ` (${flags})` : "";
-            const hasProgress = ms?.cursor || ms?.page || ms?.lastExternalId;
-            const indicator = hasProgress ? "✓" : "·";
-            terminal(`  ${indicator} ${modelName}${flagStr}\n`);
+          elapsedLine += `  |  Rate: ~${rate.toFixed(0)} items/s`;
+          if (total > succeeded && rate > 0) {
+            const remaining = total - succeeded;
+            const eta = Math.ceil(remaining / rate);
+            elapsedLine += `  |  ETA: ${formatDuration(eta * 1000)}`;
           }
+        }
+        lines.push({ text: elapsedLine });
+
+        // Error if present
+        if (sync.error) {
+          lines.push({ text: "" });
+          lines.push({ text: `Error: ${sync.error}`, color: "red" });
+        }
+
+        // Model progress (compact)
+        if (sync.modelStatuses && Object.keys(sync.modelStatuses).length > 0) {
+          lines.push({ text: "" });
+          const modelEntries = Object.entries(sync.modelStatuses) as Array<[string, any]>;
+          const modelParts = modelEntries.map(([name, ms]) => {
+            const hasProgress = (ms as any)?.cursor || (ms as any)?.page || (ms as any)?.lastExternalId;
+            return hasProgress ? `✓${name}` : `·${name}`;
+          });
+          lines.push({ text: `Models: ${modelParts.join("  ")}` });
+        }
+
+        // Move cursor up to redraw in place
+        if (options.clear && lastLineCount > 0) {
+          terminal.up(lastLineCount);
+        }
+
+        // Render all lines
+        let lineCount = 0;
+        for (const line of lines) {
+          terminal.column(1);
+          if (line.color === "green") terminal.green(line.text);
+          else if (line.color === "red") terminal.red(line.text);
+          else if (line.color === "yellow") terminal.yellow(line.text);
+          else if (line.color === "cyan") terminal.cyan(line.text);
+          else if (line.color === "magenta") terminal.magenta(line.text);
+          else if (line.color === "gray") terminal.gray(line.text);
+          else terminal(line.text);
+          terminal.eraseLineAfter();
+          terminal("\n");
+          lineCount++;
+        }
+
+        // Pad with empty lines if we rendered fewer lines than last time
+        while (lineCount < lastLineCount) {
+          terminal.column(1);
+          terminal.eraseLineAfter();
+          terminal("\n");
+          lineCount++;
         }
 
         if (!options.clear) {
           terminal("\n---\n");
+          lineCount += 2;
         }
+
+        // Save line count for next iteration
+        lastLineCount = lineCount;
       };
 
       terminal.bold("Starting watch...\n");
