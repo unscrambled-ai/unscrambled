@@ -117,18 +117,24 @@ export class PrefixedRedactedConsole {
     const message = `[${prefix}]: ${this._redactParams(params)}`;
     this.history.push(message);
 
-    if (display) {
-      if (getEnvName() === "dev") {
-        stream.write(
-          `${
-            this.globalPrefix ? this.globalPrefix + " " : ""
-          }${color}${message}\x1b[0m\n`
-        );
-      } else {
-        stream.write(
-          `${this.globalPrefix ? this.globalPrefix + " " : ""}${message}\n`
-        );
-      }
+    if (!display) return;
+
+    let envName: string | null = null;
+    try {
+      envName = getEnvName();
+    } catch {
+      // Some command flows (notably `lightyear dev`) intentionally set the env later.
+      // Logging should never crash the process.
+      envName = null;
     }
+
+    if (envName === "dev") {
+      stream.write(
+        `${this.globalPrefix ? this.globalPrefix + " " : ""}${color}${message}\x1b[0m\n`,
+      );
+      return;
+    }
+
+    stream.write(`${this.globalPrefix ? this.globalPrefix + " " : ""}${message}\n`);
   }
 }

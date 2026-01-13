@@ -1,100 +1,77 @@
-import getPusher from "../../../shared/getPusher";
-import getPusherCredentials from "../../../shared/getPusherCredentials";
-import fetchDeploy from "./fetchDeploy";
+import fetchDeployLogs, { LogEntry } from "./fetchDeployLogs";
+import fetchDeployStatus, { DeployStatus } from "./fetchDeployStatus";
 import { terminal } from "terminal-kit";
 import { logDisplayLevel } from "../../../shared/setLogDisplayLevel";
-import throttle from "lodash/throttle";
 import { program } from "commander";
 
-export type Log = {
-  id: string;
-  createdAt: Date;
-  deployId: string | null;
-  runId: string | null;
-  deliveryId: string | null;
-  level: "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
-  message: string;
-};
+const POLL_INTERVAL_MS = 1000;
 
-export type GetDeployDetailResponseBody = {
-  id: string;
-  status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
-  reason: string | null;
-  createdAt: string;
-  logs: Log[];
-};
+export default async function waitUntilDeployFinishes(
+  deployId: string
+): Promise<void> {
+  let lastRedisEntryId: string | undefined;
+  let isFinished = false;
 
-export default async function waitUntilDeployFinishes(deployId: string) {
-  const credentials = await getPusherCredentials();
-  const pusher = await getPusher(credentials);
+  const displayLogs = (logs: LogEntry[]) => {
+    if (logs.length === 0) return;
 
-  let lineOutputCounter = 0;
+    const filteredLogs = logs.filter((log) =>
+      logDisplayLevel === "DEBUG" ? true : log.level !== "DEBUG"
+    );
 
-  const handleUpdate = async () => {
-    const deploy = (await fetchDeploy(
-      "prod",
-      deployId
-    )) as GetDeployDetailResponseBody;
+    if (filteredLogs.length === 0) return;
 
-    const status = deploy.status;
-    const logsArray: Log[] = Array.isArray((deploy as any).logs)
-      ? ((deploy as any).logs as Log[])
-      : [];
-
-    const newLogs = logsArray.slice(lineOutputCounter);
-
-    if (newLogs.length > 0) {
-      const logOutput =
-        newLogs
-          .filter((log) =>
-            logDisplayLevel === "DEBUG" ? true : log.level !== "DEBUG"
-          )
-          .map(
-            (log) =>
-              "\x1b[35m" +
-              "Server: " +
-              "\x1b[0m" +
-              `[${log.level}]: ${log.message}`
-          )
-          .join("\n") + "\n";
-      terminal(logOutput);
-    }
-
-    lineOutputCounter = logsArray.length;
-
-    if (status === "SUCCEEDED") {
-      terminal.green("Deploy succeeded! 🚀\n");
-      try {
-        subscription.unbind("deployUpdated", throttledHandleUpdate);
-      } catch {}
-      try {
-        pusher.unsubscribe(channel);
-      } catch {}
-      try {
-        pusher.disconnect();
-      } catch {}
-      return;
-    } else if (status === "FAILED") {
-      terminal.red("Deploy failed 💥\n");
-      try {
-        subscription.unbind("deployUpdated", throttledHandleUpdate);
-      } catch {}
-      try {
-        pusher.unsubscribe(channel);
-      } catch {}
-      try {
-        pusher.disconnect();
-      } catch {}
-      program.error("Deploy failed", { exitCode: 1 });
-    }
+    const logOutput =
+      filteredLogs
+        .map(
+          (log) =>
+            "\x1b[35m" +
+            "Server: " +
+            "\x1b[0m" +
+            `[${log.level ?? "LOG"}]: ${log.message ?? ""}`
+        )
+        .join("\n") + "\n";
+    terminal(logOutput);
   };
 
-  const throttledHandleUpdate = throttle(handleUpdate, 1000);
+  const poll = async (): Promise<DeployStatus> => {
+    // Fetch new logs since last poll
+    try {
+      const logsResponse = await fetchDeployLogs("prod", deployId, {
+        fromRedisEntryId: lastRedisEntryId,
+      });
 
-  const channel = credentials.prodEnvId;
-  console.debug("Subscribing to channel (credentials.prodEnvId)", channel);
-  const subscription = pusher.subscribe(channel);
-  subscription.bind("deployUpdated", throttledHandleUpdate);
+      displayLogs(logsResponse.data.logs);
 
-  await throttledHandleUpdate();
+      // Update cursor for next poll
+      if (logsResponse.data.pagination?.lastRedisEntryId) {
+        lastRedisEntryId = logsResponse.data.pagination.lastRedisEntryId;
+      }
+    } catch (error) {
+      // Log fetch errors but continue polling for status
+      console.debug("Error fetching logs:", error);
+    }
+
+    // Check deploy status
+    const statusResponse = await fetchDeployStatus("prod", deployId);
+    return statusResponse.status;
+  };
+
+  // Initial poll
+  let status = await poll();
+
+  // Continue polling until deploy finishes
+  while (!isFinished) {
+    if (status === "SUCCEEDED") {
+      terminal.green("Deploy succeeded! 🚀\n");
+      isFinished = true;
+    } else if (status === "FAILED") {
+      terminal.red("Deploy failed 💥\n");
+      program.error("Deploy failed", { exitCode: 1 });
+    } else {
+      // Wait before next poll
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      status = await poll();
+    }
+  }
 }

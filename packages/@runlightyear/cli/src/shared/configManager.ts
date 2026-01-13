@@ -6,6 +6,7 @@ import yaml from "js-yaml";
 export interface LightyearConfig {
   apiKey?: string;
   baseUrl?: string;
+  envName?: string;
 }
 
 /**
@@ -87,6 +88,15 @@ export function getApiKeyFromConfig(): string | undefined {
 export function getBaseUrlFromConfig(): string | undefined {
   const config = readConfig();
   return config.baseUrl;
+}
+
+/**
+ * Get the default environment name from the config file
+ * Returns undefined if not found
+ */
+export function getEnvNameFromConfig(): string | undefined {
+  const config = readConfig();
+  return config.envName;
 }
 
 /**

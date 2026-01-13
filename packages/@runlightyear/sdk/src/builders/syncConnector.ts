@@ -2325,15 +2325,27 @@ export class SyncConnector<
         throw new Error("Missing managedUserId in context");
       }
 
-      // Reset time budget for this run
-      resetTimeLimit();
-
-      // Determine models to sync from platform
       const collectionName = this.collection.name;
-      const orderedModels = await getModels({ collectionName });
-      let modelsToSync = orderedModels.map((m: any) => m.name);
 
       const sync = await getSync({ syncId });
+
+      const resolveSyncTimeLimitMs = (value: unknown): number | undefined => {
+        if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+          return undefined;
+        }
+
+        // Heuristic: treat small values as seconds, larger as milliseconds
+        const timeoutMs = value <= 60 * 60 ? value * 1000 : value;
+
+        // Reserve a small buffer for final confirmations/log uploads
+        return Math.max(timeoutMs - 15_000, 30_000);
+      };
+
+      resetTimeLimit(resolveSyncTimeLimitMs((sync as any)?.timeout));
+
+      // Determine models to sync from platform
+      const orderedModels = await getModels({ collectionName });
+      let modelsToSync = orderedModels.map((m: any) => m.name);
 
       const currentModelName: string | undefined =
         sync.currentModel?.name ?? undefined;
@@ -2693,6 +2705,18 @@ export class SyncConnector<
             let consecutiveZeroCounts = 0; // Track consecutive zero counts
 
             while (confirmationAttempts < maxConfirmationAttempts) {
+              // Check overall time limit
+              if (isTimeLimitExceeded()) {
+                console.warn(
+                  `⚠️ Time limit exceeded during confirmation for model ${modelName}, calling continueSync`
+                );
+                await continueSync(syncId);
+                console.info(
+                  "⏱️ Time limit reached, continuing sync on next run..."
+                );
+                return;
+              }
+
               const result = await changeProcessor.processUnconfirmedChanges();
 
               // If no pending writes and no changes, check if we've seen zeros consistently
@@ -2753,6 +2777,19 @@ export class SyncConnector<
         let passCount = 0;
         while (true) {
           passCount++;
+
+          // Check time limit before each pass
+          if (isTimeLimitExceeded()) {
+            console.warn(
+              `⚠️ Time limit exceeded during final confirmation pass ${passCount}, calling continueSync`
+            );
+            await continueSync(syncId);
+            console.info(
+              "⏱️ Time limit reached, continuing sync on next run..."
+            );
+            return;
+          }
+
           try {
             const result = await changeProcessor.processUnconfirmedChanges();
 

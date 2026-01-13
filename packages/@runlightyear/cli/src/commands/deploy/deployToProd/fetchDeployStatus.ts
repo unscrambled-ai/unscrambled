@@ -2,7 +2,19 @@ import { program } from "commander";
 import { getApiKey } from "../../../shared/getApiKey";
 import { getBaseUrl } from "../../../shared/getBaseUrl";
 
-export default async function fetchDeploy(envName: string, deployId: string) {
+export type DeployStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+
+export type DeployStatusResponse = {
+  id: string;
+  status: DeployStatus;
+  reason: string | null;
+  createdAt: string;
+};
+
+export default async function fetchDeployStatus(
+  envName: string,
+  deployId: string
+): Promise<DeployStatusResponse> {
   const baseUrl = getBaseUrl();
   const apiKey = getApiKey();
 
@@ -19,6 +31,7 @@ export default async function fetchDeploy(envName: string, deployId: string) {
   if (response.ok) {
     return await response.json();
   } else {
-    program.error("Error fetching deploy");
+    program.error(`Error fetching deploy status: ${response.status} ${response.statusText}`);
   }
 }
+
