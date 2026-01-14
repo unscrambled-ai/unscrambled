@@ -194,10 +194,8 @@ syncs
   .description("List batches in a sync")
   .argument("<syncId>", "Sync ID")
   .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
-  .addOption(new Option("-l, --limit <count>", "Max number of batches to return").default("50"))
-  .addOption(new Option("--model <name>", "Filter by model name"))
-  .addOption(new Option("--type <type>", "Filter by batch type (UPSERT, DELETE)"))
-  .addOption(new Option("--status <status>", "Filter by status"))
+  .addOption(new Option("-l, --limit <count>", "Max number of batches to return").default("100"))
+  .addOption(new Option("--status <status>", "Filter by status (QUEUED, RUNNING, SUCCEEDED, FAILED)"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -210,8 +208,6 @@ syncs
         env?: string;
         environment?: string;
         limit: string;
-        model?: string;
-        type?: string;
         status?: string;
         output: OutputFormat;
       },
@@ -232,13 +228,12 @@ syncs
         const apiKey = getApiKey();
 
         const params = new URLSearchParams();
+        params.set("syncId", syncId);
         params.set("limit", options.limit);
-        if (options.model) params.set("modelName", options.model);
-        if (options.type) params.set("type", options.type);
         if (options.status) params.set("status", options.status);
 
         const response = await fetch(
-          `${baseUrl}/api/v1/projects/default/envs/${envName}/syncs/${syncId}/batches?${params}`,
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/batches?${params}`,
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -251,25 +246,62 @@ syncs
           throw new Error(`List batches failed: HTTP ${response.status} ${response.statusText}`);
         }
 
-        const result = await parseJsonResponse(response, { operationName: "list batches" });
+        const result = await parseJsonResponse(response, { operationName: "list batches" }) as {
+          summary: { total: number; byStatus: Record<string, number>; byType: Record<string, number> };
+          batches: Array<{
+            id: string;
+            syncId: string | null;
+            type: string;
+            status: string;
+            modelName: string | null;
+            createdAt: string;
+            startedAt: string | null;
+            endedAt: string | null;
+          }>;
+        };
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
         } else {
-          const batches = result.batches ?? result.data ?? result ?? [];
-          if (!Array.isArray(batches) || batches.length === 0) {
+          const { summary, batches } = result;
+
+          terminal.bold(`Batches for sync ${syncId}:\n\n`);
+
+          // Show summary
+          terminal.bold("Summary:\n");
+          terminal(`  Total: ${summary.total}\n`);
+          terminal(`  By Status: ${Object.entries(summary.byStatus).map(([k, v]) => `${k}=${v}`).join(", ") || "(none)"}\n`);
+          terminal(`  By Type: ${Object.entries(summary.byType).map(([k, v]) => `${k}=${v}`).join(", ") || "(none)"}\n`);
+          terminal("\n");
+
+          if (batches.length === 0) {
             terminal("No batches found\n");
             return;
           }
 
-          terminal.bold(`Batches for sync ${syncId}:\n`);
+          terminal.bold("Batches:\n");
           for (const batch of batches) {
-            const items = batch.itemCount ?? batch.total ?? "(?)";
-            terminal(
-              `  ${batch.id} ${batch.type ?? "?"} ${batch.status ?? "?"} model=${batch.modelName ?? "?"} items=${items}\n`,
-            );
+            const statusColor =
+              batch.status === "SUCCEEDED" ? terminal.green :
+              batch.status === "FAILED" ? terminal.red :
+              batch.status === "RUNNING" ? terminal.cyan :
+              batch.status === "QUEUED" ? terminal.yellow :
+              terminal;
+
+            terminal(`  ${batch.id.substring(0, 8)}... `);
+            terminal(`${batch.type.padEnd(10)} `);
+            statusColor(`${batch.status.padEnd(10)}`);
+            terminal(` model=${batch.modelName ?? "(none)"}`);
+            if (batch.startedAt && batch.endedAt) {
+              const durationMs = new Date(batch.endedAt).getTime() - new Date(batch.startedAt).getTime();
+              terminal.gray(` ${durationMs}ms`);
+            }
+            terminal("\n");
           }
-          terminal(`\nTotal: ${batches.length} batches\n`);
+
+          if (batches.length < summary.total) {
+            terminal.gray(`\nShowing ${batches.length} of ${summary.total} batches\n`);
+          }
         }
       } catch (error) {
         terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
