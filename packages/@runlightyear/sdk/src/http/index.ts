@@ -355,18 +355,30 @@ export const httpRequest: HttpRequest = async (props) => {
         continue;
       } else if (proxyResponse.status < 200 || proxyResponse.status >= 300) {
         const elapsed = Date.now() - requestStartTime;
-        console.error(`<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`);
-        console.error("Response:", JSON.stringify(proxyResponse.data, null, 2));
+        console.error(
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`,
+        );
+
+        const dataForLogging =
+          redactKeys?.length &&
+          proxyResponse.data &&
+          typeof proxyResponse.data === "object" &&
+          !Array.isArray(proxyResponse.data)
+            ? {
+                ...(proxyResponse.data as Record<string, unknown>),
+                ...Object.fromEntries(
+                  redactKeys
+                    .filter((key) => key in (proxyResponse.data as any))
+                    .map((key) => [key, "[REDACTED]"]),
+                ),
+              }
+            : proxyResponse.data;
+
+        console.error("Response:", JSON.stringify(dataForLogging, null, 2));
         throw new HttpProxyResponseError(proxyResponse);
       } else {
         const elapsed = Date.now() - requestStartTime;
         console.debug(`<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`);
-        // Redact secrets from response data (no logging needed)
-        for (const key of redactKeys || []) {
-          if (proxyResponse.data?.[key]) {
-            proxyResponse.data[key] = "[REDACTED]";
-          }
-        }
       }
 
       return proxyResponse;
