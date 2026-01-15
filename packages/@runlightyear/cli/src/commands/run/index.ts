@@ -262,6 +262,113 @@ runs
     }
   );
 
+// Cancel a run
+runs
+  .command("cancel")
+  .description("Cancel a running or queued run")
+  .argument("<runId>", "Run ID")
+  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(new Option("-f, --force", "Skip confirmation prompt"))
+  .action(
+    async (
+      runId: string,
+      options: { env?: string; environment?: string; force?: boolean }
+    ) => {
+      requireAuth();
+
+      let envName: string;
+      try {
+        envName = resolveEnvName(getEnvOption(options));
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      try {
+        const baseUrl = getBaseUrl();
+        const apiKey = getApiKey();
+
+        // First get the run to show current status
+        const getResponse = await fetch(
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/runs/${runId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          }
+        );
+
+        if (!getResponse.ok) {
+          if (getResponse.status === 404) {
+            terminal.red(`Run '${runId}' not found\n`);
+            process.exitCode = 1;
+            return;
+          }
+          checkResponseOk(getResponse, "Get run");
+          throw new Error(`Get run failed: HTTP ${getResponse.status} ${getResponse.statusText}`);
+        }
+
+        const run = await parseJsonResponse(getResponse, { operationName: "get run" });
+
+        terminal(`Run ${runId}\n`);
+        terminal(`Action: ${run.action?.name || "(unknown)"}\n`);
+        terminal(`Status: ${run.status}\n`);
+        if (run.managedUser) {
+          terminal(`User: ${run.managedUser.displayName || run.managedUser.externalId}\n`);
+        }
+        terminal("\n");
+
+        // Check if already in terminal state
+        if (["SUCCEEDED", "FAILED", "CANCELED", "SKIPPED"].includes(run.status)) {
+          terminal.yellow(`Run has already ended with status: ${run.status}\n`);
+          return;
+        }
+
+        if (!options.force) {
+          terminal.yellow("Are you sure you want to cancel this run? [y/N] ");
+          const input = await new Promise<string>((resolve) => {
+            terminal.inputField({}, (error, input) => {
+              resolve(input || "");
+            });
+          });
+          terminal("\n");
+
+          if (input.toLowerCase() !== "y" && input.toLowerCase() !== "yes") {
+            terminal("Aborted.\n");
+            return;
+          }
+        }
+
+        terminal("Canceling run...\n");
+
+        const response = await fetch(
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/runs/${runId}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: "CANCELED" }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({})) as { message?: string };
+          terminal.red(`Cancel failed: ${errorData.message || response.statusText}\n`);
+          process.exitCode = 1;
+          return;
+        }
+
+        terminal.green("Run canceled successfully.\n");
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+      }
+    }
+  );
+
 // Get a single run
 runs
   .command("get")
