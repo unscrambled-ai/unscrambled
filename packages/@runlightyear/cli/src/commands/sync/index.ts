@@ -288,7 +288,7 @@ syncs
               batch.status === "QUEUED" ? terminal.yellow :
               terminal;
 
-            terminal(`  ${batch.id.substring(0, 8)}... `);
+            terminal(`  ${batch.id} `);
             terminal(`${batch.type.padEnd(10)} `);
             statusColor(`${batch.status.padEnd(10)}`);
             terminal(` model=${batch.modelName ?? "(none)"}`);
