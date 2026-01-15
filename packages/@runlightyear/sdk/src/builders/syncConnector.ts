@@ -2379,39 +2379,75 @@ export class SyncConnector<
       };
 
       try {
-        for (const modelName of modelsToSync) {
-          const connector = this.modelConnectors.get(modelName);
-          if (!connector) continue;
+        // Load initial sync state to determine requestedDirection
+        const initialState = await getSync({ syncId });
+        const requestedDirection: "pull" | "push" | "bidirectional" =
+          (initialState.requestedDirection as any) || "bidirectional";
+        const initialDirection: "PULL" | "PUSH" | null =
+          initialState.currentDirection ?? null;
 
-          await updateSync({ syncId, currentModelName: modelName });
+        // Determine which models need PULL and which need PUSH based on resumption state
+        let pullModels = [...modelsToSync];
+        let pushModels = [...modelsToSync];
 
-          // Track if we've sent any HTTP requests during PUSH phase for this model
-          let hasSentRequests = false;
+        // If we're resuming from PUSH phase, skip all PULL (already completed)
+        if (initialDirection === "PUSH") {
+          pullModels = [];
+          // Resume PUSH from current model
+          const currentModelName = initialState.currentModel?.name;
+          if (currentModelName) {
+            const idx = pushModels.indexOf(currentModelName);
+            if (idx >= 0) pushModels = pushModels.slice(idx);
+          }
+        } else if (initialDirection === "PULL") {
+          // Resume PULL from current model, then do all PUSH
+          const currentModelName = initialState.currentModel?.name;
+          if (currentModelName) {
+            const idx = pullModels.indexOf(currentModelName);
+            if (idx >= 0) pullModels = pullModels.slice(idx);
+          }
+        }
 
-          // Load latest sync state before starting model
-          let state = await getSync({ syncId });
-          const requestedDirection: "pull" | "push" | "bidirectional" =
-            (state.requestedDirection as any) || "bidirectional";
-          let currentDirection: "PULL" | "PUSH" | null =
-            state.currentDirection ?? null;
+        // ========================================
+        // PHASE 1: PULL all models first
+        // ========================================
+        // This ensures all external data is fetched before any pushes,
+        // which is required for DEFERRED sync objects that may depend on
+        // other objects being present in the system.
+        if (
+          requestedDirection === "pull" ||
+          requestedDirection === "bidirectional"
+        ) {
+          console.info(
+            `📥 Starting PULL phase for ${pullModels.length} models`
+          );
 
-          // Check model-level read/write restrictions
-          const modelStatus = state.modelStatuses?.[modelName];
-          const readOnly = modelStatus?.readOnly ?? false;
-          const writeOnly = modelStatus?.writeOnly ?? false;
+          for (const modelName of pullModels) {
+            const connector = this.modelConnectors.get(modelName);
+            if (!connector) continue;
 
-          // PULL phase remains synchronous
-          // Skip PULL if model is writeOnly (can only write, not read)
-          if (
-            (requestedDirection === "pull" ||
-              requestedDirection === "bidirectional") &&
-            currentDirection !== "PUSH" &&
-            !writeOnly
-          ) {
-            await updateSync({ syncId, currentDirection: "PULL" });
+            // Load latest sync state before starting model
+            let state = await getSync({ syncId });
+
+            // Check model-level read/write restrictions
+            const modelStatus = state.modelStatuses?.[modelName];
+            const writeOnly = modelStatus?.writeOnly ?? false;
+
+            // Skip PULL if model is writeOnly (can only write, not read)
+            if (writeOnly) {
+              console.info(
+                `⏭️  PULL phase skipped for model ${modelName} (writeOnly=true)`
+              );
+              continue;
+            }
+
+            await updateSync({
+              syncId,
+              currentModelName: modelName,
+              currentDirection: "PULL",
+            });
             console.info(`PULL phase started for model ${modelName}`);
 
-            // ... existing PULL logic remains unchanged ...
             const listFn = connector.list;
             if (listFn) {
               let hasMore: boolean = true;
@@ -2542,27 +2578,63 @@ export class SyncConnector<
 
               const totalPullTime = Date.now() - pullStartTime;
               console.info(
-                `📊 PULL complete: ${pageCount} pages in ${(
+                `📊 PULL complete for ${modelName}: ${pageCount} pages in ${(
                   totalPullTime / 1000
-                ).toFixed(1)}s (avg ${(totalPullTime / pageCount).toFixed(
-                  0
-                )}ms/page)`
+                ).toFixed(1)}s${
+                  pageCount > 0
+                    ? ` (avg ${(totalPullTime / pageCount).toFixed(0)}ms/page)`
+                    : ""
+                }`
               );
             }
-          } else if (writeOnly) {
-            console.info(
-              `⏭️  PULL phase skipped for model ${modelName} (writeOnly=true)`
-            );
           }
 
-          // PUSH phase with async HTTP
-          // Skip PUSH if model is readOnly (can only read, not write)
-          if (
-            (requestedDirection === "push" ||
-              requestedDirection === "bidirectional") &&
-            !readOnly
-          ) {
-            await updateSync({ syncId, currentDirection: "PUSH" });
+          console.info(`📥 PULL phase complete for all models`);
+        }
+
+        // Clear direction between phases
+        await updateSync({ syncId, currentDirection: null });
+
+        // ========================================
+        // PHASE 2: PUSH all models
+        // ========================================
+        // Now that all pulls are complete, DEFERRED sync objects can be
+        // resolved and pushed because their dependencies are available.
+        if (
+          requestedDirection === "push" ||
+          requestedDirection === "bidirectional"
+        ) {
+          console.info(
+            `📤 Starting PUSH phase for ${pushModels.length} models`
+          );
+
+          for (const modelName of pushModels) {
+            const connector = this.modelConnectors.get(modelName);
+            if (!connector) continue;
+
+            // Load latest sync state before starting model
+            let state = await getSync({ syncId });
+
+            // Check model-level read/write restrictions
+            const modelStatus = state.modelStatuses?.[modelName];
+            const readOnly = modelStatus?.readOnly ?? false;
+
+            // Skip PUSH if model is readOnly (can only read, not write)
+            if (readOnly) {
+              console.info(
+                `⏭️  PUSH phase skipped for model ${modelName} (readOnly=true)`
+              );
+              continue;
+            }
+
+            // Track if we've sent any HTTP requests during PUSH phase for this model
+            let hasSentRequests = false;
+
+            await updateSync({
+              syncId,
+              currentModelName: modelName,
+              currentDirection: "PUSH",
+            });
             console.info(`PUSH phase started for model ${modelName}`);
 
             let pushDeltaCount = 0;
@@ -2603,7 +2675,7 @@ export class SyncConnector<
               if (!delta.changes || delta.changes.length === 0) {
                 const totalPushTime = Date.now() - pushStartTime;
                 console.info(
-                  `📊 PUSH complete: ${pushDeltaCount} delta fetches in ${(
+                  `📊 PUSH complete for ${modelName}: ${pushDeltaCount} delta fetches in ${(
                     totalPushTime / 1000
                   ).toFixed(1)}s`
                 );
@@ -2679,98 +2751,96 @@ export class SyncConnector<
                 }
               }
             }
-          } else if (readOnly) {
-            console.info(
-              `⏭️  PUSH phase skipped for model ${modelName} (readOnly=true)`
-            );
-          }
 
-          // Clear direction after model finishes
-          await updateSync({ syncId, currentDirection: null });
-
-          // Process any pending confirmations for this model before moving to next model
-          // This helps prevent delta locks when moving between models
-          // Poll until all writes are confirmed or timeout
-          if (hasSentRequests) {
-            console.info(
-              `🔄 Processing confirmations for model ${modelName} before moving to next model...`
-            );
-
-            // Wait longer initially if we sent requests, as platform may need time to queue them
-            // This is especially important for localhost proxy where requests may be delayed
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-
-            let confirmationAttempts = 0;
-            const maxConfirmationAttempts = 40; // Wait up to ~40 seconds for responses
-            let consecutiveZeroCounts = 0; // Track consecutive zero counts
-
-            while (confirmationAttempts < maxConfirmationAttempts) {
-              // Check overall time limit
-              if (isTimeLimitExceeded()) {
-                console.warn(
-                  `⚠️ Time limit exceeded during confirmation for model ${modelName}, calling continueSync`
-                );
-                await continueSync(syncId);
-                console.info(
-                  "⏱️ Time limit reached, continuing sync on next run..."
-                );
-                return;
-              }
-
-              const result = await changeProcessor.processUnconfirmedChanges();
-
-              // If no pending writes and no changes, check if we've seen zeros consistently
-              // This handles the case where requests haven't been queued yet
-              if (result.pendingWritesCount === 0 && !result.hasChanges) {
-                consecutiveZeroCounts++;
-                // If we've seen zero for 3 consecutive checks, we're probably done
-                // But if it's early (first few attempts), keep checking in case requests are slow to appear
-                if (consecutiveZeroCounts >= 3 && confirmationAttempts >= 5) {
-                  console.info(
-                    `✅ All confirmations complete for model ${modelName} after ${
-                      confirmationAttempts + 1
-                    } attempts`
-                  );
-                  break;
-                }
-              } else {
-                consecutiveZeroCounts = 0; // Reset counter if we see any activity
-              }
-
-              if (result.pendingWritesCount > 0) {
-                console.info(
-                  `⏳ ${
-                    result.pendingWritesCount
-                  } writes still pending for model ${modelName}, waiting... (attempt ${
-                    confirmationAttempts + 1
-                  }/${maxConfirmationAttempts})`
-                );
-              } else if (confirmationAttempts < 5) {
-                // Log early attempts even if zero, to show we're waiting for requests to appear
-                console.info(
-                  `⏳ Waiting for HTTP requests to appear for model ${modelName}... (attempt ${
-                    confirmationAttempts + 1
-                  }/${maxConfirmationAttempts})`
-                );
-              }
-
-              confirmationAttempts++;
-
-              // Wait before next attempt (exponential backoff, but faster initial checks)
-              const waitTime =
-                confirmationAttempts <= 5
-                  ? 1000 // Check every second for first 5 attempts
-                  : Math.min(1000 * (confirmationAttempts - 5), 2000); // Then exponential backoff
-              await new Promise((resolve) => setTimeout(resolve, waitTime));
-            }
-
-            if (confirmationAttempts >= maxConfirmationAttempts) {
-              console.warn(
-                `⚠️  Confirmation timeout for model ${modelName} - ${maxConfirmationAttempts} attempts reached. Writes may be confirmed in final pass.`
+            // Process any pending confirmations for this model before moving to next model
+            // This helps prevent delta locks when moving between models
+            // Poll until all writes are confirmed or timeout
+            if (hasSentRequests) {
+              console.info(
+                `🔄 Processing confirmations for model ${modelName} before moving to next model...`
               );
+
+              // Wait longer initially if we sent requests, as platform may need time to queue them
+              // This is especially important for localhost proxy where requests may be delayed
+              await new Promise((resolve) => setTimeout(resolve, 3000));
+
+              let confirmationAttempts = 0;
+              const maxConfirmationAttempts = 40; // Wait up to ~40 seconds for responses
+              let consecutiveZeroCounts = 0; // Track consecutive zero counts
+
+              while (confirmationAttempts < maxConfirmationAttempts) {
+                // Check overall time limit
+                if (isTimeLimitExceeded()) {
+                  console.warn(
+                    `⚠️ Time limit exceeded during confirmation for model ${modelName}, calling continueSync`
+                  );
+                  await continueSync(syncId);
+                  console.info(
+                    "⏱️ Time limit reached, continuing sync on next run..."
+                  );
+                  return;
+                }
+
+                const result = await changeProcessor.processUnconfirmedChanges();
+
+                // If no pending writes and no changes, check if we've seen zeros consistently
+                // This handles the case where requests haven't been queued yet
+                if (result.pendingWritesCount === 0 && !result.hasChanges) {
+                  consecutiveZeroCounts++;
+                  // If we've seen zero for 3 consecutive checks, we're probably done
+                  // But if it's early (first few attempts), keep checking in case requests are slow to appear
+                  if (consecutiveZeroCounts >= 3 && confirmationAttempts >= 5) {
+                    console.info(
+                      `✅ All confirmations complete for model ${modelName} after ${
+                        confirmationAttempts + 1
+                      } attempts`
+                    );
+                    break;
+                  }
+                } else {
+                  consecutiveZeroCounts = 0; // Reset counter if we see any activity
+                }
+
+                if (result.pendingWritesCount > 0) {
+                  console.info(
+                    `⏳ ${
+                      result.pendingWritesCount
+                    } writes still pending for model ${modelName}, waiting... (attempt ${
+                      confirmationAttempts + 1
+                    }/${maxConfirmationAttempts})`
+                  );
+                } else if (confirmationAttempts < 5) {
+                  // Log early attempts even if zero, to show we're waiting for requests to appear
+                  console.info(
+                    `⏳ Waiting for HTTP requests to appear for model ${modelName}... (attempt ${
+                      confirmationAttempts + 1
+                    }/${maxConfirmationAttempts})`
+                  );
+                }
+
+                confirmationAttempts++;
+
+                // Wait before next attempt (exponential backoff, but faster initial checks)
+                const waitTime =
+                  confirmationAttempts <= 5
+                    ? 1000 // Check every second for first 5 attempts
+                    : Math.min(1000 * (confirmationAttempts - 5), 2000); // Then exponential backoff
+                await new Promise((resolve) => setTimeout(resolve, waitTime));
+              }
+
+              if (confirmationAttempts >= maxConfirmationAttempts) {
+                console.warn(
+                  `⚠️  Confirmation timeout for model ${modelName} - ${maxConfirmationAttempts} attempts reached. Writes may be confirmed in final pass.`
+                );
+              }
             }
           }
+
+          console.info(`📤 PUSH phase complete for all models`);
         }
+
+        // Clear direction after all phases complete
+        await updateSync({ syncId, currentDirection: null });
 
         // Final confirmation passes - poll until no pending writes remain
         console.info("🔄 Processing remaining async writes...");
