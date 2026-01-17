@@ -58,7 +58,9 @@ export default async function waitUntilDeployFinishes(
   };
 
   // Initial poll
+  console.info("Waiting for deploy to finish...");
   let status = await poll();
+  console.info(`Initial deploy status: ${status}`);
 
   // Continue polling until deploy finishes
   while (!isFinished) {
@@ -71,7 +73,13 @@ export default async function waitUntilDeployFinishes(
     } else {
       // Wait before next poll
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-      status = await poll();
+      const newStatus = await poll();
+      if (newStatus !== status) {
+        console.info(`Deploy status changed: ${status} -> ${newStatus}`);
+        status = newStatus;
+      } else {
+        status = newStatus;
+      }
     }
   }
 }

@@ -142,9 +142,10 @@ runs
   .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
   .addOption(new Option("--level <level>", "Filter by log level (DEBUG, INFO, WARN, ERROR)"))
   .addOption(new Option("-l, --limit <count>", "Max logs to return").default("500"))
-  .addOption(new Option("-s, --search <pattern>", "Filter logs containing pattern"))
+  .addOption(new Option("-s, --search <pattern>", "Search indexed logs containing pattern (excludes very recent logs)"))
   .addOption(new Option("--after <timestamp>", "Show logs after this timestamp (ISO 8601 or HH:MM:SS)"))
   .addOption(new Option("--before <timestamp>", "Show logs before this timestamp (ISO 8601 or HH:MM:SS)"))
+  .addOption(new Option("-t, --tail", "Show most recent logs first (descending order)"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -161,6 +162,7 @@ runs
         search?: string;
         after?: string;
         before?: string;
+        tail?: boolean;
         output: OutputFormat;
       }
     ) => {
@@ -179,8 +181,18 @@ runs
         const baseUrl = getBaseUrl();
         const apiKey = getApiKey();
 
-        // Build query params for date filtering
+        // Build query params
         const params = new URLSearchParams();
+        
+        // When search is specified, use search mode (queries OpenSearch directly)
+        // Otherwise use default live mode (Redis first, then OpenSearch)
+        if (options.search) {
+          params.set("mode", "search");
+          params.set("search", options.search);
+          // Note: search mode only queries indexed logs (OpenSearch)
+          // Very recent logs (< ~2 min) may not appear in search results
+        }
+        
         if (options.after) {
           // Support both ISO 8601 and HH:MM:SS formats
           const afterTs = options.after.includes("T") 
@@ -196,6 +208,9 @@ runs
         }
         if (options.level) {
           params.set("level", options.level.toUpperCase());
+        }
+        if (options.tail) {
+          params.set("sortOrder", "desc");
         }
         params.set("size", options.limit);
 
@@ -221,17 +236,19 @@ runs
 
         const result = await parseJsonResponse(response, { operationName: "get run logs" });
 
-        const logs = result.data?.logs ?? result.logs ?? [];
+        let logs = result.data?.logs ?? result.logs ?? [];
         const totalCount = result.data?.pagination?.totalCount ?? logs.length;
 
-        // Client-side filtering (level and date range are now server-side)
-        let filteredLogs = logs;
-        if (options.search) {
-          const searchLower = options.search.toLowerCase();
-          filteredLogs = filteredLogs.filter((log: any) =>
-            log.message.toLowerCase().includes(searchLower)
-          );
+        // Sort logs by timestamp only for non-search mode (search mode handles sorting server-side)
+        if (!options.search) {
+          logs.sort((a: any, b: any) => {
+            const cmp = a.timestamp.localeCompare(b.timestamp);
+            return options.tail ? -cmp : cmp;
+          });
         }
+
+        // No more client-side filtering needed - all filtering is done server-side
+        const filteredLogs = logs;
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify({ logs: filteredLogs, totalCount }, null, 2)}\n`);
@@ -254,6 +271,9 @@ runs
           }
 
           terminal(`\nShowing ${filteredLogs.length} of ${totalCount} logs\n`);
+          if (options.search) {
+            terminal.gray(`Note: Search queries indexed logs. Very recent logs (< ~2 min) may not appear.\n`);
+          }
         }
       } catch (error) {
         terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
@@ -362,6 +382,173 @@ runs
         }
 
         terminal.green("Run canceled successfully.\n");
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+      }
+    }
+  );
+
+// Analyze runs for a sync (show transition gaps)
+runs
+  .command("analyze")
+  .description("Analyze run transitions for a sync")
+  .argument("<syncId>", "Sync ID to analyze")
+  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-o, --output <format>", "Output format")
+      .choices(["text", "json"])
+      .default("text")
+  )
+  .action(
+    async (
+      syncId: string,
+      options: { env?: string; environment?: string; output: OutputFormat }
+    ) => {
+      requireAuth();
+
+      let envName: string;
+      try {
+        envName = resolveEnvName(getEnvOption(options));
+      } catch (error) {
+        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      try {
+        const baseUrl = getBaseUrl();
+        const apiKey = getApiKey();
+
+        const params = new URLSearchParams();
+        params.set("syncId", syncId);
+
+        const response = await fetch(
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/runs?${params}`,
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          checkResponseOk(response, "List runs");
+          throw new Error(`List runs failed: HTTP ${response.status} ${response.statusText}`);
+        }
+
+        const result = await parseJsonResponse(response, { operationName: "list runs" });
+        const runs = (result.runs ?? []).sort(
+          (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+
+        if (runs.length === 0) {
+          terminal("No runs found for this sync\n");
+          return;
+        }
+
+        // Calculate transitions
+        const transitions: Array<{
+          fromRun: number;
+          toRun: number;
+          fromEnded: string;
+          toStarted: string;
+          gapMs: number;
+        }> = [];
+
+        for (let i = 0; i < runs.length - 1; i++) {
+          const curr = runs[i];
+          const next = runs[i + 1];
+          if (curr.endedAt && next.startedAt) {
+            const gapMs = new Date(next.startedAt).getTime() - new Date(curr.endedAt).getTime();
+            transitions.push({
+              fromRun: i,
+              toRun: i + 1,
+              fromEnded: curr.endedAt,
+              toStarted: next.startedAt,
+              gapMs,
+            });
+          }
+        }
+
+        if (options.output === "json") {
+          process.stdout.write(
+            JSON.stringify(
+              {
+                syncId,
+                runs: runs.map((r: any, i: number) => ({
+                  runNumber: i,
+                  id: r.id,
+                  status: r.status,
+                  createdAt: r.createdAt,
+                  startedAt: r.startedAt,
+                  endedAt: r.endedAt,
+                  durationMs: r.endedAt && r.startedAt
+                    ? new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()
+                    : null,
+                })),
+                transitions,
+                summary: {
+                  totalRuns: runs.length,
+                  totalGapMs: transitions.reduce((sum, t) => sum + t.gapMs, 0),
+                  avgGapMs: transitions.length > 0
+                    ? transitions.reduce((sum, t) => sum + t.gapMs, 0) / transitions.length
+                    : 0,
+                  maxGapMs: transitions.length > 0 ? Math.max(...transitions.map(t => t.gapMs)) : 0,
+                },
+              },
+              null,
+              2
+            ) + "\n"
+          );
+        } else {
+          terminal.bold(`Run Transition Analysis for Sync ${syncId}\n\n`);
+
+          terminal.bold("Runs:\n");
+          for (let i = 0; i < runs.length; i++) {
+            const r = runs[i];
+            const duration = r.endedAt && r.startedAt
+              ? (new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()) / 1000
+              : null;
+            terminal(`  #${i}: ${r.id.substring(0, 13)}...`);
+            terminal(` ${r.status}`);
+            if (duration !== null) {
+              terminal(` (${duration.toFixed(1)}s)`);
+            }
+            terminal("\n");
+            terminal.gray(`      started: ${r.startedAt?.substring(11, 23) || "?"}`);
+            terminal.gray(` ended: ${r.endedAt?.substring(11, 23) || "?"}\n`);
+          }
+
+          terminal("\n");
+          terminal.bold("Transitions:\n");
+          for (const t of transitions) {
+            const gapSec = t.gapMs / 1000;
+            const isSlowGap = gapSec > 5;
+            terminal(`  Run #${t.fromRun} → #${t.toRun}: `);
+            if (isSlowGap) {
+              terminal.red(`${gapSec.toFixed(2)}s`);
+              terminal.yellow(` ⚠️  SLOW\n`);
+            } else {
+              terminal.green(`${gapSec.toFixed(2)}s\n`);
+            }
+          }
+
+          terminal("\n");
+          terminal.bold("Summary:\n");
+          const totalGapSec = transitions.reduce((sum, t) => sum + t.gapMs, 0) / 1000;
+          const avgGapSec = transitions.length > 0 ? totalGapSec / transitions.length : 0;
+          const maxGapSec = transitions.length > 0 ? Math.max(...transitions.map(t => t.gapMs)) / 1000 : 0;
+          terminal(`  Total runs: ${runs.length}\n`);
+          terminal(`  Total gap time: ${totalGapSec.toFixed(2)}s\n`);
+          terminal(`  Avg gap: ${avgGapSec.toFixed(2)}s\n`);
+          terminal(`  Max gap: ${maxGapSec.toFixed(2)}s`);
+          if (maxGapSec > 5) {
+            terminal.yellow(` ⚠️\n`);
+          } else {
+            terminal("\n");
+          }
+        }
       } catch (error) {
         terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
         process.exitCode = 1;

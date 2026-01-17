@@ -14,7 +14,7 @@ import {
   getUnconfirmedChanges,
 } from "../platform/sync";
 import { getCurrentContext, getLogCapture } from "../logging";
-import { isTemporaryHttpError } from "../utils/httpErrors";
+import { isTemporaryHttpError, isSyncCanceledError } from "../utils/httpErrors";
 import { isTimeLimitExceeded, resetTimeLimit } from "../utils/time";
 import { ChangeProcessor } from "../platform/changeProcessor";
 import { validateAgainstSchema } from "../utils/schemaValidation";
@@ -2530,10 +2530,16 @@ export class SyncConnector<
                   offset: pagination?.offset,
                   async: true,
                 }).catch((error) => {
-                  console.error(
-                    `Failed to upsert batch for ${modelName}:`,
-                    error
-                  );
+                  if (isSyncCanceledError(error)) {
+                    console.info(
+                      `Sync was canceled by server, stopping batch submission for ${modelName}`
+                    );
+                  } else {
+                    console.error(
+                      `Failed to upsert batch for ${modelName}:`,
+                      error
+                    );
+                  }
                   throw error;
                 });
 
@@ -3124,7 +3130,13 @@ export class SyncConnector<
             : undefined,
         async: true,
       }).catch((error) => {
-        console.error(`Failed to upsert batch for ${modelName}:`, error);
+        if (isSyncCanceledError(error)) {
+          console.info(
+            `Sync was canceled by server, stopping batch submission for ${modelName}`
+          );
+        } else {
+          console.error(`Failed to upsert batch for ${modelName}:`, error);
+        }
         throw error; // Re-throw to fail the sync
       });
 

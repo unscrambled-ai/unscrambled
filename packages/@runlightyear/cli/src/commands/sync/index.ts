@@ -42,26 +42,120 @@ async function fetchSync(envName: string, syncId: string) {
   return await parseJsonResponse(response, { operationName: "get sync" });
 }
 
-function printSyncText(envName: string, sync: any) {
+async function fetchSyncStats(envName: string, syncId: string) {
+  const baseUrl = getBaseUrl();
+  const apiKey = getApiKey();
+
+  const response = await fetch(
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/syncs/${syncId}/stats`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    return null; // Stats endpoint may not exist or have data
+  }
+
+  return await parseJsonResponse(response, { operationName: "get sync stats" });
+}
+
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  } else {
+    return `${seconds}s`;
+  }
+}
+
+function formatTimestamp(dateStr: string | null | undefined): string {
+  if (!dateStr) return "(not set)";
+  const date = new Date(dateStr);
+  return date.toISOString().replace("T", " ").substring(0, 19) + " UTC";
+}
+
+function printSyncText(envName: string, sync: any, stats?: any) {
   const status = sync.status;
   const type = sync.type ?? "(unknown)";
   const direction = sync.currentDirection ?? "(none)";
   const currentModel = sync.currentModel?.name ?? "(none)";
 
+  // Calculate duration and throughput
+  let durationStr = "";
+  let throughputStr = "";
+  if (sync.startedAt && sync.endedAt) {
+    const durationMs = new Date(sync.endedAt).getTime() - new Date(sync.startedAt).getTime();
+    durationStr = formatDuration(durationMs);
+    const totalItems = sync.succeeded ?? 0;
+    if (durationMs > 0 && totalItems > 0) {
+      const itemsPerSec = (totalItems / (durationMs / 1000)).toFixed(0);
+      throughputStr = ` (${itemsPerSec} objects/sec)`;
+    }
+  } else if (sync.startedAt && !sync.endedAt) {
+    // Still running - show elapsed time
+    const elapsedMs = Date.now() - new Date(sync.startedAt).getTime();
+    durationStr = `${formatDuration(elapsedMs)} (running)`;
+  }
+
   terminal.bold(`Sync ${sync.id}\n`);
   terminal(`env: ${envName}\n`);
   terminal(`status: ${status}  type: ${type}\n`);
+  if (durationStr) {
+    terminal(`duration: ${durationStr}${throughputStr}\n`);
+  }
   terminal(`current: ${currentModel} / ${direction}\n`);
 
   if (sync.error) {
     terminal.red(`error: ${sync.error}\n`);
   }
 
+  // Timestamps section
+  terminal("\n");
+  terminal.bold("Timestamps:\n");
+  terminal(`  created:  ${formatTimestamp(sync.createdAt)}\n`);
+  terminal(`  started:  ${formatTimestamp(sync.startedAt)}\n`);
+  terminal(`  ended:    ${formatTimestamp(sync.endedAt)}\n`);
+
+  terminal("\n");
   terminal(
-    `counts: queued=${sync.queued ?? 0} processing=${sync.processing ?? 0} succeeded=${
+    `Counts: queued=${sync.queued ?? 0} processing=${sync.processing ?? 0} succeeded=${
       sync.succeeded ?? 0
     } failed=${sync.failed ?? 0} canceled=${sync.canceled ?? 0} total=${sync.total ?? 0}\n`,
   );
+
+  // Stats breakdown by model if available
+  if (stats) {
+    const models = stats.models ?? stats.byModel ?? {};
+    if (typeof models === "object" && Object.keys(models).length > 0) {
+      terminal("\n");
+      terminal.bold("By Model:\n");
+      for (const [modelName, modelStats] of Object.entries(models) as Array<[string, any]>) {
+        terminal(`  ${modelName}:\n`);
+        if (modelStats.pull) {
+          const pullSucceeded = modelStats.pull.succeeded ?? 0;
+          const pullFailed = modelStats.pull.failed ?? 0;
+          terminal(`    PULL: ${pullSucceeded} succeeded, ${pullFailed} failed\n`);
+        }
+        if (modelStats.push) {
+          const pushSucceeded = modelStats.push.succeeded ?? 0;
+          const pushFailed = modelStats.push.failed ?? 0;
+          terminal(`    PUSH: ${pushSucceeded} succeeded, ${pushFailed} failed\n`);
+        }
+        if (!modelStats.pull && !modelStats.push) {
+          // Flat stats without direction breakdown
+          terminal(`    total: ${modelStats.total ?? 0}, succeeded: ${modelStats.succeeded ?? 0}, failed: ${modelStats.failed ?? 0}\n`);
+        }
+      }
+    }
+  }
 
   if (sync.lastBatch) {
     const modelPart = sync.lastBatch.modelName
@@ -177,11 +271,16 @@ syncs
     }
 
     try {
-      const result = await fetchSync(envName, syncId);
+      const [result, stats] = await Promise.all([
+        fetchSync(envName, syncId),
+        fetchSyncStats(envName, syncId),
+      ]);
       if (options.output === "json") {
-        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        // Include stats in JSON output if available
+        const output = stats ? { ...result, stats } : result;
+        process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
       } else {
-        printSyncText(envName, result);
+        printSyncText(envName, result, stats);
       }
     } catch (error) {
       terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
