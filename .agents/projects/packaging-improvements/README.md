@@ -1,73 +1,109 @@
 # Packaging Improvements
 
+This directory contains proposals for improving how Lightyear packages are published and distributed.
+
 ## Goals
 
-- Optimize bundle size for Lambda deployments
-- Support 100s of connectors efficiently
-- Enable independent connector releases (only version bump when connector code changes)
-- Improve build performance with smart caching and affected detection
+- Optimize for developer experience (easy to use, extend, or rewrite)
+- Ensure AI-friendly code generation (types align, imports work naturally)
+- Minimize bundle sizes and avoid duplicate dependencies
+- Maintain clear version compatibility signals
+- Support 100s of connectors efficiently at scale
 
-## Current State Issues
+## Proposals
 
-### 1. SDK as Regular Dependency
+| File | Priority | Status | Description |
+|------|----------|--------|-------------|
+| [01-zod-peer-dependency.md](./01-zod-peer-dependency.md) | High | Proposed | Move Zod to peerDependencies |
+| [02-workspace-protocol.md](./02-workspace-protocol.md) | High | Proposed | Standardize on `workspace:^` |
+| [03-exports-field.md](./03-exports-field.md) | Medium | Proposed | Add exports field to all packages |
+| [04-linked-versioning.md](./04-linked-versioning.md) | Low | Proposed | Consider linked versioning during 0.x |
 
-Currently in connector `package.json`:
-```json
-"dependencies": {
-  "@runlightyear/lightyear": "workspace:*",
-  "@runlightyear/sdk": "workspace:*",
-  "zod": "^4.0.17"
-}
+## Current State Analysis
+
+### Package Dependencies
+
+```
+@runlightyear/sdk (0.1.0)
+    └── zod: ^4.0.17 (dependency)
+
+@runlightyear/hubspot (1.1.0)
+    ├── @runlightyear/sdk: "*" (dependency)
+    ├── @runlightyear/lightyear: "*" (dependency)
+    └── zod: ^4.0.17 (dependency)
+
+@runlightyear/salesforce (0.10.2)
+    ├── @runlightyear/sdk: "workspace:*" (dependency)
+    ├── @runlightyear/lightyear: "workspace:*" (dependency)
+    └── zod: ^4.0.17 (dependency)
+
+@runlightyear/lightyear (2.3.2) [DEPRECATED]
+    └── zod: ^3.22.4 (dependency)
 ```
 
-**Problem:** Each connector bundles its own copy of SDK. If a user installs 5 connectors, they get 5 copies of the SDK in their Lambda.
+### Distribution Model (Current - Correct)
 
-### 2. Deprecated `lightyear` Package Still Referenced
+- Packages are built with `tsup`
+- Dependencies are **externalized** (not bundled) - this is correct
+- Each package ships only its own code
+- SDK/Zod resolved at install time from node_modules
 
-The `@runlightyear/lightyear` package is deprecated but still listed as a dependency in connectors and the connector template.
+Verified:
+```javascript
+// hubspot/dist/index.js
+var import_sdk = require("@runlightyear/sdk");  // External, not bundled
+var import_zod = require("zod");                 // External, not bundled
+```
 
-### 3. Stale Connector Template
+Bundle sizes confirm no bundling:
+- hubspot: 1,103 lines
+- sdk: 8,363 lines (if bundled, hubspot would be much larger)
 
-`connector-template/` references:
-- `@runlightyear/lightyear` (deprecated)
-- TypeScript 4.5 (current is 5.8)
-- ESLint 7 (current is 9)
-- Node types 12 (current is 20)
+### Issues Identified
 
-### 4. No Tree-Shaking Support
+1. **Zod in dependencies** - Can cause duplicate installations, type mismatches
+2. **Inconsistent workspace protocol** - `"*"` vs `"workspace:*"`
+3. **Missing exports field** - Only lightyear has it
+4. **Version mismatch** - lightyear uses Zod v3, others use v4
+5. **Deprecated lightyear still referenced** - Connectors still depend on it
 
-Missing `sideEffects: false` and dual ESM/CJS builds.
+---
 
 ## Target Architecture
 
+### Package Structure
+
 ```
 lightyear/
-├── packages/
+├── packages/@runlightyear/
 │   ├── sdk/                    # @runlightyear/sdk (core)
 │   ├── cli/                    # @runlightyear/cli
-│   └── connectors/
-│       ├── salesforce/         # @runlightyear/salesforce
-│       ├── hubspot/            # @runlightyear/hubspot
-│       └── .../                # 100s more
-├── tools/
-│   └── generators/             # Nx generators for scaffolding
-├── nx.json                     # Nx configuration
+│   ├── hubspot/                # @runlightyear/hubspot
+│   ├── salesforce/             # @runlightyear/salesforce
+│   └── .../                    # More connectors
+├── apps/
+│   └── docs/                   # Documentation site
+├── packages/util/              # Shared configs
+├── turbo.json                  # Turborepo config
 ├── pnpm-workspace.yaml         # pnpm workspaces
 └── .changeset/                 # Changesets config
 ```
 
-### SDK as peerDependency
+### Target Dependency Model
 
-Connector `package.json`:
+SDK as peerDependency in connectors:
+
 ```json
+// packages/@runlightyear/hubspot/package.json
 {
-  "name": "@runlightyear/salesforce",
-  "version": "1.0.0",
+  "name": "@runlightyear/hubspot",
   "peerDependencies": {
-    "@runlightyear/sdk": "^1.0.0"
+    "@runlightyear/sdk": "^0.1.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@runlightyear/sdk": "workspace:*"
+    "@runlightyear/sdk": "workspace:^",
+    "zod": "^4.0.17"
   }
 }
 ```
@@ -79,45 +115,48 @@ Connector `package.json`:
   "sideEffects": false,
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
-  }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts"
 }
 ```
 
 tsup config:
-```js
-export default {
+```typescript
+export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
   dts: true,
-  splitting: true,
   clean: true,
-}
+  outExtension({ format }) {
+    return { js: format === 'esm' ? '.mjs' : '.cjs' };
+  },
+});
 ```
 
-## Migration: Turborepo to Nx
+---
 
-### Rationale
+## Tooling Decision: Turborepo vs Nx
 
-| Feature | Turborepo (current) | Nx |
-|---------|--------------------|----|
-| Affected detection | Basic | Advanced (understands code deps) |
-| Project graph | File-based | Code-aware (analyzes imports) |
-| Generators/scaffolding | None built-in | Excellent (`nx generate`) |
-| Remote cache | Vercel only (paid) | Nx Cloud (free tier) or self-host |
-| Distributed execution | Vercel (paid) | Nx Agents (free tier available) |
+**Current choice: Turborepo + pnpm** - This is appropriate for the current scale.
 
-At 100s of connectors, Nx's `nx affected` command is critical - only builds/tests/publishes packages affected by changes.
+| Aspect | Turborepo + pnpm | Nx |
+|--------|------------------|-----|
+| Complexity | Simple (~40 line config) | Heavy (many files) |
+| Learning curve | Minimal | Significant |
+| Build caching | Excellent | Excellent |
+| Open source friendly | Easy to fork/understand | Harder for contributors |
+| Affected detection | Basic | Advanced (code-aware) |
+| Generators | None built-in | Excellent |
 
-### Migration Steps
+**Recommendation:** Stay with Turborepo until you have 50+ connectors. The simplicity benefits outweigh Nx's advanced features at current scale. Revisit when scaling pain points emerge.
 
-1. Run `npx nx init` to import existing workspace
-2. Configure `nx.json` with build targets
-3. Set up Nx Cloud for remote caching (`nx connect`)
-4. Update CI to use `nx affected` commands
+---
 
 ## Versioning Strategy
 
@@ -125,8 +164,8 @@ At 100s of connectors, Nx's `nx affected` command is critical - only builds/test
 
 | SDK Change | Version Bump | Connector Impact |
 |------------|--------------|------------------|
-| Bug fix | `1.0.0` → `1.0.1` | None |
-| New feature (backward compatible) | `1.0.1` → `1.1.0` | None |
+| Bug fix | `1.0.0` → `1.0.1` | None (satisfies `^1.0.0`) |
+| New feature | `1.0.1` → `1.1.0` | None (satisfies `^1.0.0`) |
 | Breaking change | `1.1.0` → `2.0.0` | Must update peer dep |
 
 ### When Connectors Need Version Bumps
@@ -138,28 +177,23 @@ At 100s of connectors, Nx's `nx affected` command is critical - only builds/test
 | Connector's own code changes | **Yes** |
 | Connector needs new SDK feature | **Yes** - bump minimum: `^1.2.0` |
 
-### Example at Scale
+### Current Changesets Config
 
-```
-SDK:        1.0.0 → 1.1.0 → 1.2.0 → 1.3.0 → 2.0.0 (breaking)
-            ↑                              ↑
-Salesforce: 1.0.0 (peer: ^1.0.0) ────→ 2.0.0 (peer: ^2.0.0)
-HubSpot:    1.0.0 (peer: ^1.0.0) ────→ 2.0.0 (peer: ^2.0.0)
-```
-
-Only 2 connector releases each over the entire SDK 1.x lifecycle.
-
-## Future Considerations
-
-### @runlightyear/connector-base
-
-If patterns emerge across connectors (common OAuth helpers, pagination, rate limiting), extract to a shared package. Wait until 5-10 connectors exist and patterns are clear - premature abstraction is worse than duplication.
-
-### Nx Generators
-
-Create generators for scaffolding new connectors:
-```bash
-nx generate @runlightyear/tools:connector stripe
+```json
+{
+  "updateInternalDependencies": "patch",
+  "linked": [],
+  "fixed": []
+}
 ```
 
-This ensures consistency across 100s of connectors.
+This means packages version independently. Consider `linked` during 0.x for clearer compatibility signals - see [04-linked-versioning.md](./04-linked-versioning.md).
+
+---
+
+## Implementation Priority
+
+1. **High: Zod as peerDependency** - Biggest DX/type safety win
+2. **High: Standardize workspace:^** - Proper semver when published
+3. **Medium: Add exports field** - Better tooling support
+4. **Low: Linked versioning** - Optional, cosmetic improvement
