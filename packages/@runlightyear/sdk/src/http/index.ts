@@ -118,6 +118,7 @@ async function exponentialBackoffWithJitter(retryCount: number): Promise<void> {
 // Get the current context values from log context
 function getCurrentRunContext(): {
   runId?: string;
+  authorizerActivityId?: string;
   syncId?: string;
   modelName?: string;
   integrationName?: string;
@@ -128,6 +129,7 @@ function getCurrentRunContext(): {
   const ctx = getCurrentContext();
   return {
     runId: ctx.runId,
+    authorizerActivityId: ctx.authorizerActivityId,
     syncId: (ctx as any).syncId,
     modelName: (ctx as any).modelName,
     integrationName: (ctx as any).integrationName,
@@ -174,6 +176,7 @@ export const httpRequest: HttpRequest = async (props) => {
   // Get the current run and execution context
   const {
     runId,
+    authorizerActivityId,
     syncId,
     modelName,
     integrationName,
@@ -181,16 +184,13 @@ export const httpRequest: HttpRequest = async (props) => {
     managedUserExternalId,
   } = getCurrentRunContext();
 
-  console.debug("SDK httpRequest - runId from context:", runId);
-  console.debug("SDK httpRequest - props:", JSON.stringify(rest, null, 2));
-
   const maxBackoffs = 5;
   let backoffCount = 0;
 
   do {
     try {
       // Use the same proxy endpoint as the lightyear package
-      const proxyUrl = `${baseUrl}/api/v1/envs/${envName}/http-request`;
+      const proxyUrl = `${baseUrl}/api/v1/projects/default/envs/${envName}/http-request`;
 
       // Normalize json/data/body for proxy: prefer explicit body, then json, then data
       const {
@@ -277,6 +277,11 @@ export const httpRequest: HttpRequest = async (props) => {
         runId,
       };
 
+      // Add authorizerActivityId if present
+      if (authorizerActivityId) {
+        requestBody.authorizerActivityId = authorizerActivityId;
+      }
+
       // Add syncInfo if present
       if (syncInfo) {
         requestBody.syncInfo = syncInfo;
@@ -297,8 +302,9 @@ export const httpRequest: HttpRequest = async (props) => {
       delete requestBody.changeId;
       delete requestBody.changeIds;
 
-      console.debug("Making proxy request to:", proxyUrl);
-      console.debug("Request body:", JSON.stringify(requestBody, null, 2));
+      const method = requestBody.method || "GET";
+      console.debug(`=> ${method} ${urlWithQuery}`);
+      const requestStartTime = Date.now();
 
       const response = await fetch(proxyUrl, {
         method: "POST",
@@ -310,6 +316,7 @@ export const httpRequest: HttpRequest = async (props) => {
       });
 
       if (!response.ok) {
+        const elapsed = Date.now() - requestStartTime;
         const errorText = await response.text();
 
         // Decide retry based on categorization utility
@@ -317,6 +324,9 @@ export const httpRequest: HttpRequest = async (props) => {
           categorizeHttpStatus(response.status) === "temporary";
 
         if (isRetriableHttpStatus) {
+          console.warn(
+            `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy] - retrying...`
+          );
           backoffCount += 1;
           if (backoffCount > maxBackoffs) {
             throw new HttpProxyResponseError({
@@ -332,6 +342,10 @@ export const httpRequest: HttpRequest = async (props) => {
 
         // Non-retriable HTTP error → surface as HttpProxyResponseError so callers
         // can handle uniformly and we do not retry in our catch block below.
+        console.error(
+          `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy]`
+        );
+        console.error("Response:", errorText);
         throw new HttpProxyResponseError({
           status: response.status,
           statusText: response.statusText,
@@ -343,6 +357,10 @@ export const httpRequest: HttpRequest = async (props) => {
       const proxyResponse = (await response.json()) as HttpProxyResponse;
 
       if (categorizeHttpStatus(proxyResponse.status) === "temporary") {
+        const elapsed = Date.now() - requestStartTime;
+        console.warn(
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms) - retrying...`
+        );
         backoffCount += 1;
         if (backoffCount > maxBackoffs) {
           throw new HttpProxyResponseError(proxyResponse);
@@ -350,24 +368,33 @@ export const httpRequest: HttpRequest = async (props) => {
         await exponentialBackoffWithJitter(backoffCount);
         continue;
       } else if (proxyResponse.status < 200 || proxyResponse.status >= 300) {
-        // Log as error so callers see failure in console and can fail the sync
-        console.error("HTTP proxy error:", {
-          status: proxyResponse.status,
-          statusText: proxyResponse.statusText,
-          headers: proxyResponse.headers,
-          data: proxyResponse.data,
-        });
+        const elapsed = Date.now() - requestStartTime;
+        console.error(
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`
+        );
+
+        const dataForLogging =
+          redactKeys?.length &&
+          proxyResponse.data &&
+          typeof proxyResponse.data === "object" &&
+          !Array.isArray(proxyResponse.data)
+            ? {
+                ...(proxyResponse.data as Record<string, unknown>),
+                ...Object.fromEntries(
+                  redactKeys
+                    .filter((key) => key in (proxyResponse.data as any))
+                    .map((key) => [key, "[REDACTED]"])
+                ),
+              }
+            : proxyResponse.data;
+
+        console.error("Response:", JSON.stringify(dataForLogging, null, 2));
         throw new HttpProxyResponseError(proxyResponse);
       } else {
-        // Redact secrets in logs
-        console.debug("redacting keys", redactKeys);
-        for (const key of redactKeys || []) {
-          if (proxyResponse.data[key]) {
-            console.debug(`Redacted key ${key} from response`);
-          } else {
-            console.debug(`key ${key} not found in response data`);
-          }
-        }
+        const elapsed = Date.now() - requestStartTime;
+        console.debug(
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`
+        );
       }
 
       return proxyResponse;
@@ -423,7 +450,7 @@ export const batchHttpRequest: BatchHttpRequest = async (props) => {
     );
   }
 
-  const batchUrl = `${baseUrl}/api/v1/envs/${envName}/http-request/batch`;
+  const batchUrl = `${baseUrl}/api/v1/projects/default/envs/${envName}/http-request/batch`;
 
   // Prepare batch requests - convert to new API format
   const batchRequests = props.requests.map((request) => {

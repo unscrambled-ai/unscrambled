@@ -128,7 +128,7 @@ const scheduledIntegration = defineIntegration("scheduled-sync")
   .withSyncSchedules([
     { type: "INCREMENTAL", every: "5 minutes" },
     { type: "FULL", every: "1 day" },
-    { type: "INITIAL", maxRetries: 3 },
+    { type: "BASELINE", maxRetries: 3 },
   ])
   .deploy();
 
@@ -148,7 +148,7 @@ const incrementalScheduleIntegration = defineIntegration(
   .withCollection(incrementalScheduleCollection)
   .addSyncSchedule({ type: "INCREMENTAL", every: 300 }) // Every 5 minutes (in seconds)
   .addSyncSchedule({ type: "FULL", every: "1 week" })
-  .addSyncSchedule({ type: "INITIAL", maxRetries: 5 })
+  .addSyncSchedule({ type: "BASELINE", maxRetries: 5 })
   .deploy();
 
 /**
@@ -208,7 +208,7 @@ const objectScheduleIntegration = defineIntegration("object-schedule-sync")
   .withSyncSchedules({
     incremental: { every: "15 minutes" },
     full: { every: "3 days" },
-    initial: { maxRetries: 3 },
+    baseline: { maxRetries: 3 },
   })
   .deploy();
 

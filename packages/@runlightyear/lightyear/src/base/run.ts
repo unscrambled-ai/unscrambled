@@ -50,7 +50,7 @@ export async function getRunFuncProps(runId: string): Promise<RunFuncProps> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/runs/${runId}/run-func-props`,
+    uri: `/api/v1/projects/default/envs/${envName}/runs/${runId}/run-func-props`,
   });
 
   const runFuncProps = <RunFuncProps>await response.json();
@@ -92,7 +92,7 @@ export async function finishRun(props: FinishRunProps) {
 
   await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/runs/${runId}/finish`,
+    uri: `/api/v1/projects/default/envs/${envName}/runs/${runId}/finish`,
     data: { status, rerun },
   });
 }

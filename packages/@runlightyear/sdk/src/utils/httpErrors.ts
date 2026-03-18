@@ -47,3 +47,31 @@ export function isPermanentHttpError(
 ): boolean {
   return categorizeHttpStatus(status) === "permanent";
 }
+
+/**
+ * Check if an error indicates the sync was canceled by the server.
+ * This happens when the sync transitions to CANCELED status while
+ * the SDK is still trying to submit batches.
+ */
+export function isSyncCanceledError(error: unknown): boolean {
+  if (!error) return false;
+
+  // Check for 409 status
+  let status: number | undefined;
+  if (typeof error === "object" && error !== null) {
+    if ("status" in error && typeof (error as any).status === "number") {
+      status = (error as any).status;
+    } else if (
+      "response" in error &&
+      typeof (error as any).response?.status === "number"
+    ) {
+      status = (error as any).response.status;
+    }
+  }
+
+  if (status !== 409) return false;
+
+  // Check for the specific message indicating sync cancellation
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("Sync is not running");
+}

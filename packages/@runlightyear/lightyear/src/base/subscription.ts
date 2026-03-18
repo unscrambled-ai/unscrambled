@@ -33,7 +33,7 @@ export async function setSubscribeProps(
 ) {
   await baseRequest({
     method: "PUT",
-    uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/subscribe-props`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscribe-props`,
     data: {
       subscribeProps,
     },
@@ -49,7 +49,7 @@ export async function setUnsubscribeProps(
 ) {
   await baseRequest({
     method: "PUT",
-    uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/unsubscribe-props`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/unsubscribe-props`,
     data: {
       unsubscribeProps,
     },
@@ -70,7 +70,7 @@ export async function updateSubscription(
 ) {
   await baseRequest({
     method: "PATCH",
-    uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/subscription`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription`,
     data: {
       status,
       unsubscribeProps,
@@ -95,7 +95,7 @@ export async function setSubscriptionExpiresAt(value: string | null) {
 
   return await baseRequest({
     method: "PATCH",
-    uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/subscription`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription`,
     data: {
       expiresAt: value,
     },

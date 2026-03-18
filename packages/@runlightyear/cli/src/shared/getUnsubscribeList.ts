@@ -9,7 +9,7 @@ export default async function getUnsubscribeList(environment?: string) {
   const apiKey = getApiKey();
 
   const response = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/unsubscribe-list`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/unsubscribe-list`,
     {
       method: "GET",
       headers: {

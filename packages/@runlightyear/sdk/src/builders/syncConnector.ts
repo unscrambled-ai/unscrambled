@@ -8,13 +8,13 @@ import {
   upsertObjectBatch,
   retrieveDelta,
   confirmChangeBatch,
-  pauseSync,
+  continueSync,
   startSync,
   finishSync,
   getUnconfirmedChanges,
 } from "../platform/sync";
 import { getCurrentContext, getLogCapture } from "../logging";
-import { isTemporaryHttpError } from "../utils/httpErrors";
+import { isTemporaryHttpError, isSyncCanceledError } from "../utils/httpErrors";
 import { isTimeLimitExceeded, resetTimeLimit } from "../utils/time";
 import { ChangeProcessor } from "../platform/changeProcessor";
 import { validateAgainstSchema } from "../utils/schemaValidation";
@@ -29,7 +29,7 @@ export interface ListParams {
   limit?: number;
   lastExternalId?: string;
   lastExternalUpdatedAt?: string;
-  syncType: "FULL" | "INCREMENTAL";
+  syncType: "FULL" | "INCREMENTAL" | "BASELINE";
 }
 
 // Prevents TypeScript from inferring a type parameter from a usage site.
@@ -94,7 +94,7 @@ export interface ListFilterArgs<TModel = any> {
   obj: SyncObject<TModel>;
   lastExternalId?: string;
   lastExternalUpdatedAt?: string;
-  syncType: "FULL" | "INCREMENTAL";
+  syncType: "FULL" | "INCREMENTAL" | "BASELINE";
 }
 
 export interface ListConfig<TModel = any, TResponse = unknown> {
@@ -119,7 +119,7 @@ export interface ListConfig<TModel = any, TResponse = unknown> {
     limit?: number;
     lastExternalId?: string;
     lastExternalUpdatedAt?: string;
-    syncType: "FULL" | "INCREMENTAL";
+    syncType: "FULL" | "INCREMENTAL" | "BASELINE";
   }) => {
     cursor?: string | null;
     page?: number | null;
@@ -251,7 +251,7 @@ export interface TypedListConfig<TModel, TResponse> {
     page?: number;
     offset?: number;
     limit?: number;
-    syncType: "FULL" | "INCREMENTAL";
+    syncType: "FULL" | "INCREMENTAL" | "BASELINE";
   }) => {
     cursor?: string | null;
     page?: number | null;
@@ -295,7 +295,7 @@ export interface TypeSafeListConfig<
     page?: number;
     offset?: number;
     limit?: number;
-    syncType: "FULL" | "INCREMENTAL";
+    syncType: "FULL" | "INCREMENTAL" | "BASELINE";
   }) => {
     cursor?: string | null;
     page?: number | null;
@@ -516,7 +516,7 @@ export class SyncConnectorBuilder<
           } else {
             rawItems = Array.isArray(data) ? data : [];
           }
-          
+
           // Convert items to SyncObject format (handles both transform and non-transform cases)
           items = rawItems.map((item: any, index: number) => {
             // Check if item is already a SyncObject (has 'data' property)
@@ -535,7 +535,9 @@ export class SyncConnectorBuilder<
               null;
             return {
               externalId,
-              externalUpdatedAt: externalUpdatedAt ? String(externalUpdatedAt) : null,
+              externalUpdatedAt: externalUpdatedAt
+                ? String(externalUpdatedAt)
+                : null,
               data: item,
             };
           });
@@ -595,7 +597,7 @@ export class SyncConnectorBuilder<
               limit?: number;
               lastExternalId?: string;
               lastExternalUpdatedAt?: string;
-              syncType: "FULL" | "INCREMENTAL";
+              syncType: "FULL" | "INCREMENTAL" | "BASELINE";
             }) => {
               cursor?: string | null;
               page?: number | null;
@@ -1073,7 +1075,7 @@ export class SyncModelConnectorBuilder<T = any> {
           page?: number;
           offset?: number;
           limit?: number;
-          syncType: "FULL" | "INCREMENTAL";
+          syncType: "FULL" | "INCREMENTAL" | "BASELINE";
         }) => {
           cursor?: string | null;
           page?: number | null;
@@ -1086,7 +1088,7 @@ export class SyncModelConnectorBuilder<T = any> {
           page?: number;
           offset?: number;
           limit?: number;
-          syncType: "FULL" | "INCREMENTAL";
+          syncType: "FULL" | "INCREMENTAL" | "BASELINE";
         }) => {
           cursor?: string | null;
           page?: number | null;
@@ -1509,13 +1511,33 @@ export class SyncConnector<
             ? responseData
             : responseData?.results || responseData?.data || [];
 
+          // Validate we have items
+          if (!Array.isArray(items) || items.length === 0) {
+            console.warn(
+              `⚠️ Default extract function: Response does not contain an array of items. ` +
+                `Expected array or object with 'results'/'data' property. ` +
+                `Response type: ${typeof responseData}, ` +
+                `Is array: ${Array.isArray(responseData)}, ` +
+                `Has results: ${!!responseData?.results}, ` +
+                `Has data: ${!!responseData?.data}`
+            );
+          }
+
           return batch.map((change: any, index: number) => {
             const item = items[index] || {};
+            const externalId = item.id || item.externalId || change.externalId;
+
+            // Warn if we couldn't find a valid external ID
+            if (!externalId) {
+              console.warn(
+                `⚠️ Default extract function: Could not find externalId for change ${change.changeId} at index ${index}. ` +
+                  `Item keys: ${Object.keys(item).join(", ")}`
+              );
+            }
+
             return {
               changeId: change.changeId,
-              externalId: String(
-                item.id || item.externalId || change.externalId || index
-              ),
+              externalId: externalId ? String(externalId) : "",
               externalUpdatedAt:
                 item.updatedAt ||
                 item.externalUpdatedAt ||
@@ -1526,13 +1548,19 @@ export class SyncConnector<
         });
 
       // Register batch extract function (only once per model)
+      const responseSchema = connector.config.batchCreate?.responseSchema;
       if (response.httpRequestId) {
         processor.registerBatchExtractFunction(
           response.httpRequestId,
-          extractFn
+          extractFn,
+          responseSchema
         );
       } else if (!processor.hasBatchExtractFunctionForModel(modelName)) {
-        processor.registerBatchExtractFunctionByModel(modelName, extractFn);
+        processor.registerBatchExtractFunctionByModel(
+          modelName,
+          extractFn,
+          responseSchema
+        );
       }
     }
   }
@@ -1620,13 +1648,33 @@ export class SyncConnector<
             ? responseData
             : responseData?.results || responseData?.data || [];
 
+          // Validate we have items
+          if (!Array.isArray(items) || items.length === 0) {
+            console.warn(
+              `⚠️ Default extract function (UPDATE): Response does not contain an array of items. ` +
+                `Expected array or object with 'results'/'data' property. ` +
+                `Response type: ${typeof responseData}, ` +
+                `Is array: ${Array.isArray(responseData)}, ` +
+                `Has results: ${!!responseData?.results}, ` +
+                `Has data: ${!!responseData?.data}`
+            );
+          }
+
           return batch.map((change: any, index: number) => {
             const item = items[index] || {};
+            const externalId = item.id || item.externalId || change.externalId;
+
+            // Warn if we couldn't find a valid external ID
+            if (!externalId) {
+              console.warn(
+                `⚠️ Default extract function (UPDATE): Could not find externalId for change ${change.changeId} at index ${index}. ` +
+                  `Item keys: ${Object.keys(item).join(", ")}`
+              );
+            }
+
             return {
               changeId: change.changeId,
-              externalId: String(
-                item.id || item.externalId || change.externalId || index
-              ),
+              externalId: externalId ? String(externalId) : "",
               externalUpdatedAt:
                 item.updatedAt ||
                 item.externalUpdatedAt ||
@@ -1637,13 +1685,19 @@ export class SyncConnector<
         });
 
       // Register batch extract function (only once per model)
+      const responseSchema = connector.config.batchUpdate?.responseSchema;
       if (response.httpRequestId) {
         processor.registerBatchExtractFunction(
           response.httpRequestId,
-          extractFn
+          extractFn,
+          responseSchema
         );
       } else if (!processor.hasBatchExtractFunctionForModel(modelName)) {
-        processor.registerBatchExtractFunctionByModel(modelName, extractFn);
+        processor.registerBatchExtractFunctionByModel(
+          modelName,
+          extractFn,
+          responseSchema
+        );
       }
     }
   }
@@ -1736,13 +1790,19 @@ export class SyncConnector<
         });
 
       // Register batch extract function (only once per model)
+      const responseSchema = connector.config.batchDelete?.responseSchema;
       if (response.httpRequestId) {
         processor.registerBatchExtractFunction(
           response.httpRequestId,
-          extractFn
+          extractFn,
+          responseSchema
         );
       } else if (!processor.hasBatchExtractFunctionForModel(modelName)) {
-        processor.registerBatchExtractFunctionByModel(modelName, extractFn);
+        processor.registerBatchExtractFunctionByModel(
+          modelName,
+          extractFn,
+          responseSchema
+        );
       }
     }
   }
@@ -1768,8 +1828,9 @@ export class SyncConnector<
         const extractFn = (responseData: any, changeIds?: string[]) => {
           // For individual requests, each response corresponds to one change
           // changeIds will be provided by ChangeProcessor as second parameter
-          const changeId = changeIds && changeIds.length > 0 ? changeIds[0] : "";
-          
+          const changeId =
+            changeIds && changeIds.length > 0 ? changeIds[0] : "";
+
           if (createExtractFn) {
             // Use the model's extract function
             // The extract function expects the transformed response (after responseSchema validation and transform)
@@ -1788,7 +1849,11 @@ export class SyncConnector<
                   // The transform function might be able to handle the raw response structure
                   if ((createConfig as any).transform) {
                     console.warn(
-                      `Response schema validation failed for model "${modelName}" create operation, but transform function exists. Proceeding with raw response. Validation errors: ${JSON.stringify(error?.issues || [error], null, 2)}`
+                      `Response schema validation failed for model "${modelName}" create operation, but transform function exists. Proceeding with raw response. Validation errors: ${JSON.stringify(
+                        error?.issues || [error],
+                        null,
+                        2
+                      )}`
                     );
                     validated = responseData; // Use raw response
                   } else {
@@ -1814,7 +1879,9 @@ export class SyncConnector<
               // CREATE extract always returns externalId as string (required)
               if (!extracted.externalId) {
                 throw new Error(
-                  `Extract function returned missing externalId. Transformed response keys: ${Object.keys(transformed || {}).join(", ")}`
+                  `Extract function returned missing externalId. Transformed response keys: ${Object.keys(
+                    transformed || {}
+                  ).join(", ")}`
                 );
               }
               return [
@@ -1833,13 +1900,10 @@ export class SyncConnector<
             // Default extraction - try common patterns for nested responses
             let externalId: string | null = null;
             let externalUpdatedAt: string | null = null;
-            
+
             // Try direct properties first
-            externalId =
-              responseData?.id ||
-              responseData?.externalId ||
-              null;
-            
+            externalId = responseData?.id || responseData?.externalId || null;
+
             // Try nested structures (common patterns: { owner: { id } }, { data: { id } }, { result: { id } })
             if (!externalId && responseData) {
               externalId =
@@ -1849,7 +1913,7 @@ export class SyncConnector<
                 responseData.item?.id ||
                 null;
             }
-            
+
             externalUpdatedAt =
               responseData?.updatedAt ||
               responseData?.externalUpdatedAt ||
@@ -1859,10 +1923,14 @@ export class SyncConnector<
               responseData?.data?.updatedAt ||
               responseData?.data?.createdAt ||
               null;
-            
+
             if (!externalId) {
               throw new Error(
-                `Could not extract externalId from CREATE response. Response structure: ${JSON.stringify(responseData, null, 2)}`
+                `Could not extract externalId from CREATE response. Response structure: ${JSON.stringify(
+                  responseData,
+                  null,
+                  2
+                )}`
               );
             }
             return [
@@ -1918,8 +1986,9 @@ export class SyncConnector<
         const extractFn = (responseData: any, changeIds?: string[]) => {
           // For individual requests, each response corresponds to one change
           // changeIds will be provided by ChangeProcessor as second parameter
-          const changeId = changeIds && changeIds.length > 0 ? changeIds[0] : "";
-          
+          const changeId =
+            changeIds && changeIds.length > 0 ? changeIds[0] : "";
+
           if (updateExtractFn) {
             // Use the model's extract function
             const extracted = updateExtractFn(responseData);
@@ -1935,7 +2004,9 @@ export class SyncConnector<
                 responseData?.id || responseData?.externalId || null;
               if (!fallbackId) {
                 throw new Error(
-                  `Could not extract externalId from UPDATE response. Response keys: ${Object.keys(responseData || {}).join(", ")}`
+                  `Could not extract externalId from UPDATE response. Response keys: ${Object.keys(
+                    responseData || {}
+                  ).join(", ")}`
                 );
               }
               externalId = String(fallbackId);
@@ -1957,7 +2028,9 @@ export class SyncConnector<
               null;
             if (!externalId) {
               throw new Error(
-                `Could not extract externalId from UPDATE response. Response keys: ${Object.keys(responseData || {}).join(", ")}`
+                `Could not extract externalId from UPDATE response. Response keys: ${Object.keys(
+                  responseData || {}
+                ).join(", ")}`
               );
             }
             return [
@@ -2016,7 +2089,8 @@ export class SyncConnector<
         const extractFn = (responseData: any, changeIds?: string[]) => {
           // For DELETE, the ChangeProcessor will extract externalId from the request URL
           // This is just a placeholder - the ChangeProcessor handles the actual extraction
-          const changeId = changeIds && changeIds.length > 0 ? changeIds[0] : "";
+          const changeId =
+            changeIds && changeIds.length > 0 ? changeIds[0] : "";
           return [
             {
               changeId,
@@ -2059,7 +2133,9 @@ export class SyncConnector<
     } else {
       // No method available for this operation type
       throw new Error(
-        `Cannot process ${delta.operation} delta for model "${modelName}": no ${delta.operation.toLowerCase()} method is configured`
+        `Cannot process ${
+          delta.operation
+        } delta for model "${modelName}": no ${delta.operation.toLowerCase()} method is configured`
       );
     }
   }
@@ -2156,7 +2232,9 @@ export class SyncConnector<
     } else {
       // No method available for this operation type
       throw new Error(
-        `Cannot process ${delta.operation} delta for model "${modelName}": no ${delta.operation.toLowerCase()} method is configured`
+        `Cannot process ${
+          delta.operation
+        } delta for model "${modelName}": no ${delta.operation.toLowerCase()} method is configured`
       );
     }
   }
@@ -2181,7 +2259,7 @@ export class SyncConnector<
    * Sync implementation with async writes for batch operations
    */
   private async syncWithAsyncWrites(
-    type?: "FULL" | "INCREMENTAL"
+    type?: "FULL" | "INCREMENTAL" | "BASELINE"
   ): Promise<void> {
     let changeProcessor: ChangeProcessor | null = null;
 
@@ -2247,15 +2325,31 @@ export class SyncConnector<
         throw new Error("Missing managedUserId in context");
       }
 
-      // Reset time budget for this run
-      resetTimeLimit();
-
-      // Determine models to sync from platform
       const collectionName = this.collection.name;
-      const orderedModels = await getModels({ collectionName });
-      let modelsToSync = orderedModels.map((m: any) => m.name);
 
       const sync = await getSync({ syncId });
+
+      const resolveSyncTimeLimitMs = (value: unknown): number | undefined => {
+        if (
+          typeof value !== "number" ||
+          !Number.isFinite(value) ||
+          value <= 0
+        ) {
+          return undefined;
+        }
+
+        // Heuristic: treat small values as seconds, larger as milliseconds
+        const timeoutMs = value <= 60 * 60 ? value * 1000 : value;
+
+        // Reserve a small buffer for final confirmations/log uploads
+        return Math.max(timeoutMs - 15_000, 30_000);
+      };
+
+      resetTimeLimit(resolveSyncTimeLimitMs((sync as any)?.timeout));
+
+      // Determine models to sync from platform
+      const orderedModels = await getModels({ collectionName });
+      let modelsToSync = orderedModels.map((m: any) => m.name);
 
       const currentModelName: string | undefined =
         sync.currentModel?.name ?? undefined;
@@ -2289,39 +2383,75 @@ export class SyncConnector<
       };
 
       try {
-        for (const modelName of modelsToSync) {
-          const connector = this.modelConnectors.get(modelName);
-          if (!connector) continue;
+        // Load initial sync state to determine requestedDirection
+        const initialState = await getSync({ syncId });
+        const requestedDirection: "pull" | "push" | "bidirectional" =
+          (initialState.requestedDirection as any) || "bidirectional";
+        const initialDirection: "PULL" | "PUSH" | null =
+          initialState.currentDirection ?? null;
 
-          await updateSync({ syncId, currentModelName: modelName });
-          
-          // Track if we've sent any HTTP requests during PUSH phase for this model
-          let hasSentRequests = false;
+        // Determine which models need PULL and which need PUSH based on resumption state
+        let pullModels = [...modelsToSync];
+        let pushModels = [...modelsToSync];
 
-          // Load latest sync state before starting model
-          let state = await getSync({ syncId });
-          const requestedDirection: "pull" | "push" | "bidirectional" =
-            (state.requestedDirection as any) || "bidirectional";
-          let currentDirection: "PULL" | "PUSH" | null =
-            state.currentDirection ?? null;
+        // If we're resuming from PUSH phase, skip all PULL (already completed)
+        if (initialDirection === "PUSH") {
+          pullModels = [];
+          // Resume PUSH from current model
+          const currentModelName = initialState.currentModel?.name;
+          if (currentModelName) {
+            const idx = pushModels.indexOf(currentModelName);
+            if (idx >= 0) pushModels = pushModels.slice(idx);
+          }
+        } else if (initialDirection === "PULL") {
+          // Resume PULL from current model, then do all PUSH
+          const currentModelName = initialState.currentModel?.name;
+          if (currentModelName) {
+            const idx = pullModels.indexOf(currentModelName);
+            if (idx >= 0) pullModels = pullModels.slice(idx);
+          }
+        }
 
-          // Check model-level read/write restrictions
-          const modelStatus = state.modelStatuses?.[modelName];
-          const readOnly = modelStatus?.readOnly ?? false;
-          const writeOnly = modelStatus?.writeOnly ?? false;
+        // ========================================
+        // PHASE 1: PULL all models first
+        // ========================================
+        // This ensures all external data is fetched before any pushes,
+        // which is required for DEFERRED sync objects that may depend on
+        // other objects being present in the system.
+        if (
+          requestedDirection === "pull" ||
+          requestedDirection === "bidirectional"
+        ) {
+          console.info(
+            `📥 Starting PULL phase for ${pullModels.length} models`
+          );
 
-          // PULL phase remains synchronous
-          // Skip PULL if model is writeOnly (can only write, not read)
-          if (
-            (requestedDirection === "pull" ||
-              requestedDirection === "bidirectional") &&
-            currentDirection !== "PUSH" &&
-            !writeOnly
-          ) {
-            await updateSync({ syncId, currentDirection: "PULL" });
+          for (const modelName of pullModels) {
+            const connector = this.modelConnectors.get(modelName);
+            if (!connector) continue;
+
+            // Load latest sync state before starting model
+            let state = await getSync({ syncId });
+
+            // Check model-level read/write restrictions
+            const modelStatus = state.modelStatuses?.[modelName];
+            const writeOnly = modelStatus?.writeOnly ?? false;
+
+            // Skip PULL if model is writeOnly (can only write, not read)
+            if (writeOnly) {
+              console.info(
+                `⏭️  PULL phase skipped for model ${modelName} (writeOnly=true)`
+              );
+              continue;
+            }
+
+            await updateSync({
+              syncId,
+              currentModelName: modelName,
+              currentDirection: "PULL",
+            });
             console.info(`PULL phase started for model ${modelName}`);
 
-            // ... existing PULL logic remains unchanged ...
             const listFn = connector.list;
             if (listFn) {
               let hasMore: boolean = true;
@@ -2344,10 +2474,19 @@ export class SyncConnector<
 
               while (hasMore) {
                 if (isTimeLimitExceeded()) {
-                  // Wait for pending upserts before pausing
+                  // Wait for pending upserts before continuing
+                  console.warn(
+                    `⚠️ [DEBUG] Time limit exceeded in pull phase, waiting for ${pendingUpserts.length} pending upserts`
+                  );
                   await Promise.all(pendingUpserts);
-                  await pauseSync(syncId);
-                  throw "RERUN";
+                  console.warn(
+                    `⚠️ [DEBUG] Pending upserts complete, calling continueSync for syncId=${syncId}`
+                  );
+                  await continueSync(syncId);
+                  console.info(
+                    "⏱️ Time limit reached, sync will continue in next run"
+                  );
+                  return;
                 }
 
                 const params: any = {
@@ -2395,10 +2534,16 @@ export class SyncConnector<
                   offset: pagination?.offset,
                   async: true,
                 }).catch((error) => {
-                  console.error(
-                    `Failed to upsert batch for ${modelName}:`,
-                    error
-                  );
+                  if (isSyncCanceledError(error)) {
+                    console.info(
+                      `Sync was canceled by server, stopping batch submission for ${modelName}`
+                    );
+                  } else {
+                    console.error(
+                      `Failed to upsert batch for ${modelName}:`,
+                      error
+                    );
+                  }
                   throw error;
                 });
 
@@ -2443,27 +2588,63 @@ export class SyncConnector<
 
               const totalPullTime = Date.now() - pullStartTime;
               console.info(
-                `📊 PULL complete: ${pageCount} pages in ${(
+                `📊 PULL complete for ${modelName}: ${pageCount} pages in ${(
                   totalPullTime / 1000
-                ).toFixed(1)}s (avg ${(totalPullTime / pageCount).toFixed(
-                  0
-                )}ms/page)`
+                ).toFixed(1)}s${
+                  pageCount > 0
+                    ? ` (avg ${(totalPullTime / pageCount).toFixed(0)}ms/page)`
+                    : ""
+                }`
               );
             }
-          } else if (writeOnly) {
-            console.info(
-              `⏭️  PULL phase skipped for model ${modelName} (writeOnly=true)`
-            );
           }
 
-          // PUSH phase with async HTTP
-          // Skip PUSH if model is readOnly (can only read, not write)
-          if (
-            (requestedDirection === "push" ||
-              requestedDirection === "bidirectional") &&
-            !readOnly
-          ) {
-            await updateSync({ syncId, currentDirection: "PUSH" });
+          console.info(`📥 PULL phase complete for all models`);
+        }
+
+        // Clear direction between phases
+        await updateSync({ syncId, currentDirection: null });
+
+        // ========================================
+        // PHASE 2: PUSH all models
+        // ========================================
+        // Now that all pulls are complete, DEFERRED sync objects can be
+        // resolved and pushed because their dependencies are available.
+        if (
+          requestedDirection === "push" ||
+          requestedDirection === "bidirectional"
+        ) {
+          console.info(
+            `📤 Starting PUSH phase for ${pushModels.length} models`
+          );
+
+          for (const modelName of pushModels) {
+            const connector = this.modelConnectors.get(modelName);
+            if (!connector) continue;
+
+            // Load latest sync state before starting model
+            let state = await getSync({ syncId });
+
+            // Check model-level read/write restrictions
+            const modelStatus = state.modelStatuses?.[modelName];
+            const readOnly = modelStatus?.readOnly ?? false;
+
+            // Skip PUSH if model is readOnly (can only read, not write)
+            if (readOnly) {
+              console.info(
+                `⏭️  PUSH phase skipped for model ${modelName} (readOnly=true)`
+              );
+              continue;
+            }
+
+            // Track if we've sent any HTTP requests during PUSH phase for this model
+            let hasSentRequests = false;
+
+            await updateSync({
+              syncId,
+              currentModelName: modelName,
+              currentDirection: "PUSH",
+            });
             console.info(`PUSH phase started for model ${modelName}`);
 
             let pushDeltaCount = 0;
@@ -2471,13 +2652,16 @@ export class SyncConnector<
 
             while (true) {
               if (isTimeLimitExceeded()) {
-                // Time limit reached - pause immediately
+                // Time limit reached - continue on next run
                 // Unconfirmed changes will be processed on next run
-                console.info(
-                  "⏱️  Time limit reached, pausing sync (unconfirmed changes will be handled on next run)..."
+                console.warn(
+                  `⚠️ [DEBUG] Time limit exceeded in push phase, calling continueSync for syncId=${syncId}`
                 );
-                await pauseSync(syncId);
-                throw "RERUN";
+                await continueSync(syncId);
+                console.info(
+                  "⏱️  Time limit reached, continuing sync on next run (unconfirmed changes will be handled on next run)..."
+                );
+                return;
               }
 
               const deltaStart = Date.now();
@@ -2501,7 +2685,7 @@ export class SyncConnector<
               if (!delta.changes || delta.changes.length === 0) {
                 const totalPushTime = Date.now() - pushStartTime;
                 console.info(
-                  `📊 PUSH complete: ${pushDeltaCount} delta fetches in ${(
+                  `📊 PUSH complete for ${modelName}: ${pushDeltaCount} delta fetches in ${(
                     totalPushTime / 1000
                   ).toFixed(1)}s`
                 );
@@ -2577,83 +2761,116 @@ export class SyncConnector<
                 }
               }
             }
-          } else if (readOnly) {
-            console.info(
-              `⏭️  PUSH phase skipped for model ${modelName} (readOnly=true)`
-            );
-          }
 
-          // Clear direction after model finishes
-          await updateSync({ syncId, currentDirection: null });
-
-          // Process any pending confirmations for this model before moving to next model
-          // This helps prevent delta locks when moving between models
-          // Poll until all writes are confirmed or timeout
-          if (hasSentRequests) {
-            console.info(
-              `🔄 Processing confirmations for model ${modelName} before moving to next model...`
-            );
-            
-            // Wait longer initially if we sent requests, as platform may need time to queue them
-            // This is especially important for localhost proxy where requests may be delayed
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-            
-            let confirmationAttempts = 0;
-            const maxConfirmationAttempts = 40; // Wait up to ~40 seconds for responses
-            let consecutiveZeroCounts = 0; // Track consecutive zero counts
-            
-            while (confirmationAttempts < maxConfirmationAttempts) {
-              const result = await changeProcessor.processUnconfirmedChanges();
-              
-              // If no pending writes and no changes, check if we've seen zeros consistently
-              // This handles the case where requests haven't been queued yet
-              if (result.pendingWritesCount === 0 && !result.hasChanges) {
-                consecutiveZeroCounts++;
-                // If we've seen zero for 3 consecutive checks, we're probably done
-                // But if it's early (first few attempts), keep checking in case requests are slow to appear
-                if (consecutiveZeroCounts >= 3 && confirmationAttempts >= 5) {
-                  console.info(
-                    `✅ All confirmations complete for model ${modelName} after ${confirmationAttempts + 1} attempts`
-                  );
-                  break;
-                }
-              } else {
-                consecutiveZeroCounts = 0; // Reset counter if we see any activity
-              }
-              
-              if (result.pendingWritesCount > 0) {
-                console.info(
-                  `⏳ ${result.pendingWritesCount} writes still pending for model ${modelName}, waiting... (attempt ${confirmationAttempts + 1}/${maxConfirmationAttempts})`
-                );
-              } else if (confirmationAttempts < 5) {
-                // Log early attempts even if zero, to show we're waiting for requests to appear
-                console.info(
-                  `⏳ Waiting for HTTP requests to appear for model ${modelName}... (attempt ${confirmationAttempts + 1}/${maxConfirmationAttempts})`
-                );
-              }
-              
-              confirmationAttempts++;
-              
-              // Wait before next attempt (exponential backoff, but faster initial checks)
-              const waitTime = confirmationAttempts <= 5 
-                ? 1000 // Check every second for first 5 attempts
-                : Math.min(1000 * (confirmationAttempts - 5), 2000); // Then exponential backoff
-              await new Promise((resolve) => setTimeout(resolve, waitTime));
-            }
-            
-            if (confirmationAttempts >= maxConfirmationAttempts) {
-              console.warn(
-                `⚠️  Confirmation timeout for model ${modelName} - ${maxConfirmationAttempts} attempts reached. Writes may be confirmed in final pass.`
+            // Process any pending confirmations for this model before moving to next model
+            // This helps prevent delta locks when moving between models
+            // Poll until all writes are confirmed or timeout
+            if (hasSentRequests) {
+              console.info(
+                `🔄 Processing confirmations for model ${modelName} before moving to next model...`
               );
+
+              // Wait longer initially if we sent requests, as platform may need time to queue them
+              // This is especially important for localhost proxy where requests may be delayed
+              await new Promise((resolve) => setTimeout(resolve, 3000));
+
+              let confirmationAttempts = 0;
+              const maxConfirmationAttempts = 40; // Wait up to ~40 seconds for responses
+              let consecutiveZeroCounts = 0; // Track consecutive zero counts
+
+              while (confirmationAttempts < maxConfirmationAttempts) {
+                // Check overall time limit
+                if (isTimeLimitExceeded()) {
+                  console.warn(
+                    `⚠️ Time limit exceeded during confirmation for model ${modelName}, calling continueSync`
+                  );
+                  await continueSync(syncId);
+                  console.info(
+                    "⏱️ Time limit reached, continuing sync on next run..."
+                  );
+                  return;
+                }
+
+                const result =
+                  await changeProcessor.processUnconfirmedChanges();
+
+                // If no pending writes and no changes, check if we've seen zeros consistently
+                // This handles the case where requests haven't been queued yet
+                if (result.pendingWritesCount === 0 && !result.hasChanges) {
+                  consecutiveZeroCounts++;
+                  // If we've seen zero for 3 consecutive checks, we're probably done
+                  // But if it's early (first few attempts), keep checking in case requests are slow to appear
+                  if (consecutiveZeroCounts >= 3 && confirmationAttempts >= 5) {
+                    console.info(
+                      `✅ All confirmations complete for model ${modelName} after ${
+                        confirmationAttempts + 1
+                      } attempts`
+                    );
+                    break;
+                  }
+                } else {
+                  consecutiveZeroCounts = 0; // Reset counter if we see any activity
+                }
+
+                if (result.pendingWritesCount > 0) {
+                  console.info(
+                    `⏳ ${
+                      result.pendingWritesCount
+                    } writes still pending for model ${modelName}, waiting... (attempt ${
+                      confirmationAttempts + 1
+                    }/${maxConfirmationAttempts})`
+                  );
+                } else if (confirmationAttempts < 5) {
+                  // Log early attempts even if zero, to show we're waiting for requests to appear
+                  console.info(
+                    `⏳ Waiting for HTTP requests to appear for model ${modelName}... (attempt ${
+                      confirmationAttempts + 1
+                    }/${maxConfirmationAttempts})`
+                  );
+                }
+
+                confirmationAttempts++;
+
+                // Wait before next attempt (exponential backoff, but faster initial checks)
+                const waitTime =
+                  confirmationAttempts <= 5
+                    ? 1000 // Check every second for first 5 attempts
+                    : Math.min(1000 * (confirmationAttempts - 5), 2000); // Then exponential backoff
+                await new Promise((resolve) => setTimeout(resolve, waitTime));
+              }
+
+              if (confirmationAttempts >= maxConfirmationAttempts) {
+                console.warn(
+                  `⚠️  Confirmation timeout for model ${modelName} - ${maxConfirmationAttempts} attempts reached. Writes may be confirmed in final pass.`
+                );
+              }
             }
           }
+
+          console.info(`📤 PUSH phase complete for all models`);
         }
+
+        // Clear direction after all phases complete
+        await updateSync({ syncId, currentDirection: null });
 
         // Final confirmation passes - poll until no pending writes remain
         console.info("🔄 Processing remaining async writes...");
         let passCount = 0;
         while (true) {
           passCount++;
+
+          // Check time limit before each pass
+          if (isTimeLimitExceeded()) {
+            console.warn(
+              `⚠️ Time limit exceeded during final confirmation pass ${passCount}, calling continueSync`
+            );
+            await continueSync(syncId);
+            console.info(
+              "⏱️ Time limit reached, continuing sync on next run..."
+            );
+            return;
+          }
+
           try {
             const result = await changeProcessor.processUnconfirmedChanges();
 
@@ -2774,7 +2991,7 @@ export class SyncConnector<
     }
   }
 
-  async sync(type?: "FULL" | "INCREMENTAL"): Promise<void> {
+  async sync(type?: "FULL" | "INCREMENTAL" | "BASELINE"): Promise<void> {
     console.info("Using async writes for batch operations");
     return this.syncWithAsyncWrites(type);
   }
@@ -2801,7 +3018,7 @@ export class SyncConnector<
       state,
     } = props;
 
-    const syncType: "FULL" | "INCREMENTAL" = state.type || "FULL";
+    const syncType: "FULL" | "INCREMENTAL" | "BASELINE" = state.type || "FULL";
 
     // Read model watermarks
     let cursor: string | undefined;
@@ -2857,10 +3074,17 @@ export class SyncConnector<
 
     while (hasMore) {
       if (isTimeLimitExceeded()) {
-        // Wait for pending upserts before pausing
+        // Wait for pending upserts before continuing
+        console.warn(
+          `⚠️ [DEBUG] Time limit exceeded in pull phase, waiting for ${pendingUpserts.length} pending upserts`
+        );
         await Promise.all(pendingUpserts);
-        await pauseSync(syncId);
-        throw "RERUN";
+        console.warn(
+          `⚠️ [DEBUG] Pending upserts complete, calling continueSync for syncId=${syncId}`
+        );
+        await continueSync(syncId);
+        console.info("⏱️ Time limit reached, sync will continue in next run");
+        return;
       }
 
       const fetchStart = Date.now();
@@ -2911,7 +3135,13 @@ export class SyncConnector<
             : undefined,
         async: true,
       }).catch((error) => {
-        console.error(`Failed to upsert batch for ${modelName}:`, error);
+        if (isSyncCanceledError(error)) {
+          console.info(
+            `Sync was canceled by server, stopping batch submission for ${modelName}`
+          );
+        } else {
+          console.error(`Failed to upsert batch for ${modelName}:`, error);
+        }
         throw error; // Re-throw to fail the sync
       });
 
@@ -2973,8 +3203,12 @@ export class SyncConnector<
 
     while (true) {
       if (isTimeLimitExceeded()) {
-        await pauseSync(syncId);
-        throw "RERUN";
+        console.warn(
+          `⚠️ [DEBUG] Time limit exceeded in legacy push, calling continueSync for syncId=${syncId}`
+        );
+        await continueSync(syncId);
+        console.info("⏱️ Time limit reached, sync will continue in next run");
+        return;
       }
 
       const delta = await retrieveDelta({
@@ -3401,7 +3635,9 @@ export class SyncConnector<
         } else {
           // No method available for this operation type
           throw new Error(
-            `Cannot process ${delta.operation} delta for model "${modelName}": no ${delta.operation.toLowerCase()} method is configured`
+            `Cannot process ${
+              delta.operation
+            } delta for model "${modelName}": no ${delta.operation.toLowerCase()} method is configured`
           );
         }
       }

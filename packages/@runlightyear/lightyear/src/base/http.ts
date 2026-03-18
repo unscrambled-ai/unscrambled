@@ -158,7 +158,7 @@ export const httpRequest: HttpRequest = async (props) => {
 
   do {
     const response = await baseRequest({
-      uri: `/api/v1/envs/${envName}/http-request`,
+      uri: `/api/v1/projects/default/envs/${envName}/http-request`,
       data: { ...rest, ...authParams, runId },
       maxRetries,
     });
@@ -215,7 +215,7 @@ export const httpRequestBatch: HttpRequestBatch = async (
   }));
 
   const response = await baseRequest({
-    uri: `/api/v1/envs/${envName}/http-request/batch`,
+    uri: `/api/v1/projects/default/envs/${envName}/http-request/batch`,
     data: { runId, syncId: effectiveSyncId, requests: batchRequests },
   });
 

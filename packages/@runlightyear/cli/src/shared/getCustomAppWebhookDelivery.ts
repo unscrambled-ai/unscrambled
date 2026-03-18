@@ -19,7 +19,7 @@ export async function getCustomAppWebhookDelivery(
   console.debug("Fetching delivery for customApp", customAppName, deliveryId);
 
   const response = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/custom-apps/${customAppName}/webhook/deliveries/${deliveryId}`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/webhook/deliveries/${deliveryId}`,
     {
       method: "GET",
       headers: {

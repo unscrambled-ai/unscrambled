@@ -23,7 +23,7 @@ export default async function updateDeploy(props: UpdateDeployProps) {
 
   try {
     response = await fetch(
-      `${baseUrl}/api/v1/envs/${envName}/deploys/${deployId}`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/deploys/${deployId}`,
       {
         method: "PATCH",
         headers: {

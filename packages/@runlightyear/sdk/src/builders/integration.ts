@@ -201,7 +201,7 @@ export class IntegrationBuilder {
   withSyncSchedules(schedules: {
     incremental?: { every?: number | string };
     full?: { every?: number | string };
-    initial?: { every?: number | string; maxRetries: number };
+    baseline?: { every?: number | string; maxRetries: number };
   }): this;
   withSyncSchedules(
     ...schedulesOrArray:
@@ -211,7 +211,7 @@ export class IntegrationBuilder {
           {
             incremental?: { every?: number | string };
             full?: { every?: number | string };
-            initial?: { every?: number | string; maxRetries: number };
+            baseline?: { every?: number | string; maxRetries: number };
           }
         ]
   ): this {
@@ -221,12 +221,14 @@ export class IntegrationBuilder {
       firstArg &&
       !Array.isArray(firstArg) &&
       typeof firstArg === "object" &&
-      ("incremental" in firstArg || "full" in firstArg || "initial" in firstArg)
+      ("incremental" in firstArg ||
+        "full" in firstArg ||
+        "baseline" in firstArg)
     ) {
       const scheduleObj = firstArg as {
         incremental?: { every?: number | string };
         full?: { every?: number | string };
-        initial?: { every?: number | string; maxRetries: number };
+        baseline?: { every?: number | string; maxRetries: number };
       };
       const schedules: SyncSchedule[] = [];
       if (scheduleObj.incremental) {
@@ -238,25 +240,25 @@ export class IntegrationBuilder {
       if (scheduleObj.full) {
         schedules.push({ type: "FULL", every: scheduleObj.full.every });
       }
-      if (scheduleObj.initial) {
+      if (scheduleObj.baseline) {
         schedules.push({
-          type: "INITIAL",
-          every: scheduleObj.initial.every,
-          maxRetries: scheduleObj.initial.maxRetries,
+          type: "BASELINE",
+          every: scheduleObj.baseline.every,
+          maxRetries: scheduleObj.baseline.maxRetries,
         });
       }
       this.syncSchedules = schedules;
       return this;
     }
 
-    // If it's an object but doesn't have incremental/full/initial, treat as empty (clear schedules)
+    // If it's an object but doesn't have incremental/full/baseline, treat as empty (clear schedules)
     if (
       firstArg &&
       !Array.isArray(firstArg) &&
       typeof firstArg === "object" &&
       !("incremental" in firstArg) &&
       !("full" in firstArg) &&
-      !("initial" in firstArg)
+      !("baseline" in firstArg)
     ) {
       this.syncSchedules = undefined;
       return this;

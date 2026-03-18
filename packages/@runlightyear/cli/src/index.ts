@@ -11,6 +11,15 @@ import { prepareConsole } from "./logging";
 import { largeLogo } from "./largeLogo";
 import { build } from "./commands/build-command";
 import { trigger } from "./commands/trigger";
+import { syncs } from "./commands/sync";
+import { collections } from "./commands/collection";
+import { objects } from "./commands/object";
+import { managedUsers } from "./commands/managed-user";
+import { runs } from "./commands/run";
+import { integrations } from "./commands/integration";
+import { actions } from "./commands/action";
+import { envs } from "./commands/env";
+import { httpRequests } from "./commands/http-request";
 // import { test } from "./commands/test";
 
 dotenv.config();
@@ -28,7 +37,17 @@ program
   .addCommand(dev)
   .addCommand(deploy)
   .addCommand(trigger)
+  .addCommand(syncs)
+  .addCommand(collections)
+  .addCommand(objects)
+  .addCommand(managedUsers)
+  .addCommand(runs)
+  .addCommand(integrations)
+  .addCommand(actions)
+  .addCommand(envs)
+  .addCommand(httpRequests)
   .option("-d, --debug", "output extra debugging")
+  .option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   .addHelpText("beforeAll", largeLogo);
 
 async function main() {

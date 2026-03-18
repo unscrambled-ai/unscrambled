@@ -19,7 +19,7 @@ export default async function getQueuedRuns(
   const apiKey = getApiKey();
 
   try {
-    const url = `${baseUrl}/api/v1/envs/${envName}/runs?runStatus=QUEUED`;
+    const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/runs?runStatus=QUEUED`;
     const response = await fetch(url, {
       method: "GET",
       headers: {

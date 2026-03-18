@@ -478,7 +478,7 @@ class LogCapture {
       return; // Skip upload if no API key
     }
 
-    const url = `${this.config.baseUrl}/api/v1/envs/${this.config.environment}/logs`;
+    const url = `${this.config.baseUrl}/api/v1/projects/default/envs/${this.config.environment}/logs`;
     const body = JSON.stringify(payload);
 
     const maxAttempts = 5; // total attempts including first
@@ -613,7 +613,7 @@ export function setLogContext(context: {
 }
 
 /**
- * Get the current context (for internal use by HTTP requests)
+ * Get the current context (for internal use by HTTP requests and sync operations)
  */
 export function getCurrentContext(): {
   runId?: string;
@@ -621,6 +621,12 @@ export function getCurrentContext(): {
   deliveryId?: string;
   subscriptionActivityId?: string;
   authorizerActivityId?: string;
+  syncId?: string;
+  modelName?: string;
+  integrationName?: string;
+  managedUserId?: string;
+  managedUserExternalId?: string;
+  managedUserDisplayName?: string | null;
 } {
   return globalLogCapture?.getContext() || {};
 }

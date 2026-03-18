@@ -93,7 +93,7 @@ export async function getAuthData(props: GetAuthDataProps): Promise<AuthData> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`,
   });
 
   const data = (await response.json()) as AuthData;
@@ -137,7 +137,7 @@ export async function updateAuthData(props: UpdateAuthDataProps) {
 
   const response = await baseRequest({
     method: "PATCH",
-    uri: `/api/v1/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`,
     data: authData,
   });
 }
@@ -173,8 +173,8 @@ export async function setAuthError(props: SetAuthErrorProps) {
   invariant(envName, "Missing ENV_NAME");
 
   const uri = appName
-    ? `/api/v1/envs/${envName}/apps/${appName}/auths/${authName}`
-    : `/api/v1/envs/${envName}/custom-apps/${customAppName}/auths/${authName}`;
+    ? `/api/v1/projects/default/envs/${envName}/apps/${appName}/auths/${authName}`
+    : `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/auths/${authName}`;
 
   const response = await baseRequest({
     method: "PATCH",
@@ -216,7 +216,7 @@ export async function updateAuthDataState(props: UpdateAuthDataStateProps) {
 
   await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`,
   });
 }
 
@@ -228,7 +228,7 @@ export async function refreshToken(name: string) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/auths/${name}/refresh`,
+    uri: `/api/v1/projects/default/envs/${envName}/auths/${name}/refresh`,
   });
 
   if (!response.ok) {

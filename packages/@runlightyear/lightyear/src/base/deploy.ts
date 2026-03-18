@@ -92,7 +92,7 @@ export async function deploy({ envName }: Props) {
 
   const response = await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/deploy`,
+    uri: `/api/v1/projects/default/envs/${envName}/deploy`,
     data: globalThis.deployList,
   });
 
@@ -123,7 +123,7 @@ export async function getDeployData(): Promise<DeployData> {
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/deploy/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/deploy/data`,
   });
 
   const data = <DeployData>await response.json();

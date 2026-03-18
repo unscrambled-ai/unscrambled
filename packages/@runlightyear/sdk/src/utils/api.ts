@@ -196,7 +196,7 @@ export async function getAuthData(props: GetAuthDataProps): Promise<AuthData> {
   const { customAppName, authName } = props;
   const envName = getEnvName();
 
-  const uri = `/api/v1/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`;
+  const uri = `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`;
 
   try {
     const response = await makeApiRequest(uri);
@@ -238,8 +238,8 @@ export async function updateAuthData(
 
   // Use appropriate URI based on app type
   const uri = appName
-    ? `/api/v1/envs/${envName}/apps/${appName}/auths/${authName}/data`
-    : `/api/v1/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`;
+    ? `/api/v1/projects/default/envs/${envName}/apps/${appName}/auths/${authName}/data`
+    : `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/auths/${authName}/data`;
 
   try {
     console.info(

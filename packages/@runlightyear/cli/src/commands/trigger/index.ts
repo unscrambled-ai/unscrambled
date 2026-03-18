@@ -9,6 +9,7 @@ import {
 } from "../../shared/triggerAction";
 import { runInteractiveTrigger } from "./interactive";
 import { requireAuth } from "../../shared/requireAuth";
+import { getEnvName } from "../../shared/getEnvName";
 
 const DEFAULT_ACTION = "self";
 
@@ -20,7 +21,7 @@ trigger
   .option("--managed-user-external-id <externalId>", "Managed user external ID")
   .option("--all-managed-users", "Trigger for all managed users")
   .option("--interactive", "Prompt for action and managed user")
-  .option("--env <environment>", "Environment name (e.g. dev, prod)")
+  .option("--env <envName>", "Environment name (e.g. dev, prod)")
   .action(async (actionName, options) => {
     requireAuth();
 
@@ -40,7 +41,16 @@ trigger
       env,
     } = options;
 
-    const environment = env ?? "dev";
+    let environment: string;
+    try {
+      environment = env ?? getEnvName();
+    } catch (error) {
+      terminal.red(
+        `${error instanceof Error ? error.message : String(error)}\n`
+      );
+      process.exitCode = 1;
+      return;
+    }
 
     if (interactive) {
       await runInteractiveTrigger(environment);

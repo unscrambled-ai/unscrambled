@@ -206,7 +206,9 @@ export const handleRun: RunHandler = async (
           // Extract syncId from fetched props and add to context
           const fetchedSyncId = fetched.syncId;
           if (fetchedSyncId) {
-            console.log(`🔍 Handler: Extracted syncId from run-func-props: ${fetchedSyncId}`);
+            console.log(
+              `🔍 Handler: Extracted syncId from run-func-props: ${fetchedSyncId}`
+            );
           }
           // Populate execution/log context with managed user, integration, app/customApp, and syncId
           try {
@@ -236,7 +238,9 @@ export const handleRun: RunHandler = async (
             // Add syncId to context if present
             if (fetchedSyncId) {
               ctx.syncId = fetchedSyncId;
-              console.log(`✅ Handler: Set syncId in context: ${fetchedSyncId}`);
+              console.log(
+                `✅ Handler: Set syncId in context: ${fetchedSyncId}`
+              );
             }
             if (Object.keys(ctx).length > 0) {
               getLogCapture()?.setContext(ctx);

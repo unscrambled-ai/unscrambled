@@ -20,7 +20,7 @@ export async function createSubscriptionActivity({
 
   return await baseRequest({
     method: "POST",
-    uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/subscription/activities`,
+    uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription/activities`,
     data: {
       type,
       status,

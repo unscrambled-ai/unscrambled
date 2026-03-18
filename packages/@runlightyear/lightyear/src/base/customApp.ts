@@ -332,7 +332,7 @@ export async function getCustomAppWebhookData(
 
   const response = await baseRequest({
     method: "GET",
-    uri: `/api/v1/envs/${envName}/custom-apps/${customAppName}/webhook/data`,
+    uri: `/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/webhook/data`,
   });
 
   const data = (await response.json()) as CustomAppWebhookData;

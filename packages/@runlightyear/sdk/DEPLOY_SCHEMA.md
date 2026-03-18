@@ -193,9 +193,9 @@ interface IntegrationProps {
 }
 
 interface SyncSchedule {
-  type: "INCREMENTAL" | "FULL" | "INITIAL"; // Required
+  type: "INCREMENTAL" | "FULL" | "BASELINE"; // Required
   every?: number | string; // Optional - interval as number (seconds) or string (e.g., "5 minutes")
-  maxRetries?: number; // Required when type is "INITIAL" - non-negative integer
+  maxRetries?: number; // Required when type is "BASELINE" - non-negative integer
 }
 ```
 
@@ -214,7 +214,7 @@ interface SyncSchedule {
     "syncSchedules": [
       { "type": "INCREMENTAL", "every": "5 minutes" },
       { "type": "FULL", "every": "1 day" },
-      { "type": "INITIAL", "maxRetries": 3 }
+      { "type": "BASELINE", "maxRetries": 3 }
     ]
   }
 }
@@ -259,12 +259,12 @@ interface SyncSchedule {
 - `type`: Specifies the sync type:
   - `"INCREMENTAL"`: Only sync changes since last run
   - `"FULL"`: Sync all data
-  - `"INITIAL"`: Initial sync that requires `maxRetries` parameter
+  - `"BASELINE"`: Baseline sync that requires `maxRetries` parameter
 - `every`: Optional interval for automatic sync execution
   - Can be a **number** representing seconds (e.g., `300` for 5 minutes)
   - Can be a **string** in human-readable format (e.g., `"5 minutes"`, `"1 day"`, `"1 week"`)
   - If omitted, the sync schedule can be triggered manually or by other means
-- `maxRetries`: Required when `type` is `"INITIAL"` - non-negative integer specifying maximum retry attempts
+- `maxRetries`: Required when `type` is `"BASELINE"` - non-negative integer specifying maximum retry attempts
 
 ### 4. Action (`type: "action"`)
 

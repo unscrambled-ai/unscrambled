@@ -191,7 +191,7 @@ export class PrefixedRedactedConsole {
       try {
         await baseRequest({
           method: "POST",
-          uri: `/api/v1/envs/${envName}/logs`,
+          uri: `/api/v1/projects/default/envs/${envName}/logs`,
           data: { ...this.streamLogsTo, logs: logsToStream },
           suppressLogs: true,
         });

@@ -27,7 +27,7 @@ export async function setSecret(name: string, value: string | null) {
   if (actionName) {
     return await baseRequest({
       method: "PATCH",
-      uri: `/api/v1/envs/${envName}/actions/${actionName}/secrets/${name}`,
+      uri: `/api/v1/projects/default/envs/${envName}/actions/${actionName}/secrets/${name}`,
       data: {
         value,
       },
@@ -35,7 +35,7 @@ export async function setSecret(name: string, value: string | null) {
   } else if (webhookName) {
     return await baseRequest({
       method: "PATCH",
-      uri: `/api/v1/envs/${envName}/webhooks/${webhookName}/secrets/${name}`,
+      uri: `/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/secrets/${name}`,
       data: {
         value,
       },

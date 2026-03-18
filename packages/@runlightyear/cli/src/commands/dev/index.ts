@@ -35,6 +35,11 @@ dev
   )
   .addOption(new Option("--dev").hideHelp())
   .action(async () => {
+    // `lightyear dev` is explicitly tied to the dev environment.
+    // Set env vars early so shared helpers and logging behave consistently.
+    process.env.LIGHTYEAR_ENV = "dev";
+    process.env.ENV_NAME = "dev";
+
     requireAuth();
 
     terminal(largeLogo);
@@ -49,14 +54,7 @@ dev
 
     const devEnvironment = "dev";
 
-    terminal("Deploying latest build to dev...\n");
-    try {
-      await execDeployAndSubscribe(devEnvironment);
-    } catch (error) {
-      terminal.red("Initial dev deploy failed.\n");
-      console.error(error);
-    }
-
+    // Connect to Pusher and check for other dev servers BEFORE deploying
     const credentials = await getPusherCredentials();
     const pusher = await getPusher(credentials);
 
@@ -66,9 +64,81 @@ dev
     const presenceSubscription = pusher.subscribe(
       `presence-${credentials.devEnvId}`
     );
-    presenceSubscription.bind("pusher:subscription_succeeded", () => {
-      console.debug("Subscribed to presence channel\n");
-    });
+
+    // Wait for presence subscription and check for other dev servers
+    try {
+      await new Promise<void>((resolve, reject) => {
+        presenceSubscription.bind(
+          "pusher:subscription_succeeded",
+          (members: {
+            count: number;
+            me: { id: string };
+            each: (cb: (member: { id: string }) => void) => void;
+          }) => {
+            console.debug("Subscribed to presence channel");
+
+            // Count only OTHER dev servers (server_ prefix, excluding ourselves)
+            const myId = members.me?.id;
+            let otherServerCount = 0;
+            members.each((member: { id: string }) => {
+              if (member.id.startsWith("server_") && member.id !== myId) {
+                otherServerCount++;
+              }
+            });
+
+            if (otherServerCount > 0) {
+              terminal.red("\n❌ Another dev server is already running!\n\n");
+              terminal(
+                "Only one dev server can run at a time per environment.\n"
+              );
+              terminal("Please stop the other dev server and try again.\n\n");
+              reject(new Error("Another dev server is already running"));
+            } else {
+              resolve();
+            }
+          }
+        );
+
+        presenceSubscription.bind(
+          "pusher:subscription_error",
+          (error: unknown) => {
+            console.error("Failed to subscribe to presence channel:", error);
+            // Continue anyway - don't block on presence channel errors
+            resolve();
+          }
+        );
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          console.debug(
+            "Presence channel subscription timed out, continuing..."
+          );
+          resolve();
+        }, 10000);
+      });
+    } catch {
+      process.exit(1);
+    }
+
+    // Warn if another dev server attempts to join while we're running
+    presenceSubscription.bind(
+      "pusher:member_added",
+      (member: { id: string }) => {
+        if (member.id.startsWith("server_")) {
+          terminal.yellow(
+            "\n⚠️  Another dev server attempted to connect (it should exit automatically).\n"
+          );
+        }
+      }
+    );
+
+    terminal("Deploying latest build to dev...\n");
+    try {
+      await execDeployAndSubscribe(devEnvironment);
+    } catch (error) {
+      terminal.red("Initial dev deploy failed.\n");
+      console.error(error);
+    }
 
     console.debug(
       "Attempting to subscribe to regular channel",

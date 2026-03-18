@@ -18,7 +18,7 @@ export default async function createUnsubscribeActivity(
   const apiKey = getApiKey();
 
   const activityResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/webhooks/${webhookName}/subscription/activities`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/webhooks/${webhookName}/subscription/activities`,
     {
       method: "POST",
       headers: {

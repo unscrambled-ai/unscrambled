@@ -253,7 +253,8 @@ describe("CustomAppBuilder", () => {
         .asOwnApp()
         .deploy();
 
-      const clonedApp = defineCustomApp.from(originalApp)
+      const clonedApp = defineCustomApp
+        .from(originalApp)
         .withTitle("Cloned App")
         .deploy();
 
@@ -263,17 +264,11 @@ describe("CustomAppBuilder", () => {
     });
 
     it("should work with all custom app types", () => {
-      const oauthApp = defineOAuth2CustomApp("oauth-app")
-        .asOwnApp()
-        .deploy();
+      const oauthApp = defineOAuth2CustomApp("oauth-app").asOwnApp().deploy();
 
-      const apiKeyApp = defineApiKeyCustomApp("apikey-app")
-        .asOwnApp()
-        .deploy();
+      const apiKeyApp = defineApiKeyCustomApp("apikey-app").asOwnApp().deploy();
 
-      const basicApp = defineBasicCustomApp("basic-app")
-        .asOwnApp()
-        .deploy();
+      const basicApp = defineBasicCustomApp("basic-app").asOwnApp().deploy();
 
       expect(oauthApp.isOwnApp).toBe(true);
       expect(apiKeyApp.isOwnApp).toBe(true);

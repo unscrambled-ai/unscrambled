@@ -16,7 +16,7 @@ export async function getModels(props: {
   const { collectionName } = props;
   const envName = process.env.ENV_NAME || "dev";
   const response = await makeApiRequest(
-    `/api/v1/envs/${envName}/collections/${collectionName}/models`
+    `/api/v1/projects/default/envs/${envName}/collections/${collectionName}/models`
   );
   return (await response.json()) as Array<GetModelsResponseItem>;
 }
@@ -31,7 +31,7 @@ export async function startSync(props: {
   managedUserId?: string;
   fullSyncFrequency?: number;
   runId?: string;
-  type?: "FULL" | "INCREMENTAL";
+  type?: "FULL" | "INCREMENTAL" | "BASELINE";
   timeout?: number;
 }): Promise<any> {
   const envName = getEnvName();
@@ -49,7 +49,7 @@ export async function startSync(props: {
     );
   }
 
-  const url = `${baseUrl}/api/v1/envs/${envName}/syncs`;
+  const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/syncs`;
   const body = JSON.stringify({
     collectionName: props.collectionName,
     appName: props.appName ?? null,
@@ -184,21 +184,21 @@ export async function startSync(props: {
 export async function getSync(props: { syncId: string }): Promise<any> {
   const envName = process.env.ENV_NAME || "dev";
   const response = await makeApiRequest(
-    `/api/v1/envs/${envName}/syncs/${props.syncId}`
+    `/api/v1/projects/default/envs/${envName}/syncs/${props.syncId}`
   );
   return await response.json();
 }
 
 export async function updateSync(props: {
   syncId: string;
-  type?: "FULL" | "INCREMENTAL";
+  type?: "FULL" | "INCREMENTAL" | "BASELINE";
   status?: "PAUSED" | "SUCCEEDED" | "FAILED";
   currentModelName?: string;
   currentDirection?: "PUSH" | "PULL" | null;
 }): Promise<any> {
   const envName = process.env.ENV_NAME || "dev";
   const response = await makeApiRequest(
-    `/api/v1/envs/${envName}/syncs/${props.syncId}`,
+    `/api/v1/projects/default/envs/${envName}/syncs/${props.syncId}`,
     {
       method: "PATCH",
       data: {
@@ -214,9 +214,35 @@ export async function updateSync(props: {
 
 export async function pauseSync(syncId: string): Promise<void> {
   const envName = process.env.ENV_NAME || "dev";
-  await makeApiRequest(`/api/v1/envs/${envName}/syncs/${syncId}/pause`, {
-    method: "POST",
+  await makeApiRequest(
+    `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/pause`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export async function continueSync(syncId: string): Promise<void> {
+  const envName = getEnvName();
+  console.warn(`⚠️ [DEBUG] Calling continueSync for syncId=${syncId}`);
+  const response = await makeApiRequest(
+    `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/continue`,
+    {
+      method: "POST",
+    }
+  );
+
+  // Dump all response headers for debugging
+  const headers: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    headers[key] = value;
   });
+
+  console.warn(
+    `⚠️ [DEBUG] continueSync completed: syncId=${syncId} status=${
+      response.status
+    } headers=${JSON.stringify(headers)}`
+  );
 }
 
 export async function finishSync(
@@ -224,7 +250,7 @@ export async function finishSync(
   options?: { error?: string; force?: boolean }
 ): Promise<void> {
   const envName = getEnvName();
-  const url = `/api/v1/envs/${envName}/syncs/${syncId}/finish`;
+  const url = `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/finish`;
   const bodyObj: any = {};
   if (options?.error) bodyObj.error = options.error;
   if (typeof options?.force === "boolean") bodyObj.force = options.force;
@@ -278,7 +304,7 @@ export async function upsertObjectBatch(props: {
     }`
   );
   await makeApiRequest(
-    `/api/v1/envs/${envName}/collections/${props.collectionName}/models/${props.modelName}/objects/upsert/batch`,
+    `/api/v1/projects/default/envs/${envName}/collections/${props.collectionName}/models/${props.modelName}/objects/upsert/batch`,
     {
       method: "POST",
       data: {
@@ -329,7 +355,7 @@ export async function retrieveDelta<T = any>(props: {
     );
   }
 
-  const url = `${baseUrl}/api/v1/envs/${envName}/collections/${props.collectionName}/delta`;
+  const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/collections/${props.collectionName}/delta`;
 
   let retryNumber = 0;
   while (retryNumber < MAX_RETRIES) {
@@ -462,7 +488,7 @@ export async function confirmChangeBatch(props: {
   const envName = process.env.ENV_NAME || "dev";
 
   const response = await makeApiRequest(
-    `/api/v1/envs/${envName}/syncs/${props.syncId}/changes/batch/confirm`,
+    `/api/v1/projects/default/envs/${envName}/syncs/${props.syncId}/changes/batch/confirm`,
     {
       method: "POST",
       data: {
@@ -504,7 +530,7 @@ export async function getUnconfirmedChanges(props: {
   const envName = getEnvName();
   console.debug(`Fetching unconfirmed HTTP requests for sync ${props.syncId}`);
   const response = await makeApiRequest(
-    `/api/v1/envs/${envName}/http-requests/unconfirmed`,
+    `/api/v1/projects/default/envs/${envName}/http-requests/unconfirmed`,
     {
       method: "POST",
       data: {

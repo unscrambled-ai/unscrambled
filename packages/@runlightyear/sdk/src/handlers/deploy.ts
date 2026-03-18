@@ -33,9 +33,9 @@ interface CustomAppProps {
 }
 
 interface SyncScheduleProps {
-  type: "INCREMENTAL" | "FULL" | "INITIAL";
+  type: "INCREMENTAL" | "FULL" | "BASELINE";
   every?: number | string;
-  maxRetries?: number; // Required when type is "INITIAL"
+  maxRetries?: number; // Required when type is "BASELINE"
 }
 
 interface IntegrationProps {
@@ -425,7 +425,7 @@ async function postDeploymentData(
 
   // BASE_URL should always be available now with the default fallback
 
-  const url = `${baseUrl}/api/v1/envs/${envName}/deploy`;
+  const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/deploy`;
   console.log(`🎯 Target deployment URL: ${url}`);
 
   try {
@@ -680,21 +680,6 @@ export const handleDeploy: DeployHandler = async (
       );
     }
 
-    if (deploymentData.length === 0) {
-      // Treat no deployable items as an error per tests
-      return {
-        success: false,
-        error: "No deployable items found in registry",
-        data: {
-          environment:
-            deployPayload.environment || process.env.ENV_NAME || "default",
-          dryRun: deployPayload.dryRun === true,
-          deployedAt: new Date().toISOString(),
-        },
-        logs: [],
-      };
-    }
-
     const deploymentMessage = `\n🎯 Step 3: Deploying ${deploymentData.length} items...`;
     console.log(deploymentMessage);
     const deploymentResult = await postDeploymentData(
@@ -711,7 +696,7 @@ export const handleDeploy: DeployHandler = async (
         deployment: deploymentResult,
         registry: exported,
         deployedItems: deploymentData.length,
-        empty: false,
+        empty: deploymentData.length === 0,
         environment:
           deployPayload.environment || process.env.ENV_NAME || "default",
         dryRun: deployPayload.dryRun === true,

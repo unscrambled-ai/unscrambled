@@ -133,9 +133,12 @@ describe("Handlers", () => {
       const result = (await handler(event, context)) as HandlerResponse;
       const body = JSON.parse(result.body) as InternalResponse;
 
-      expect(result.statusCode).toBe(400);
-      expect(body.success).toBe(false);
-      expect(body.error).toBe("No deployable items found in registry");
+      expect(result.statusCode).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data).toBeDefined();
+      expect(body.data?.empty).toBe(true);
+      expect(body.data?.deployedItems).toBe(0);
+      expect(body.stats?.deployedItems).toBe(0);
       expect(body.logs).toEqual([]);
     });
 

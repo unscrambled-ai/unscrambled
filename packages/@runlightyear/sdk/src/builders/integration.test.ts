@@ -549,6 +549,78 @@ describe("IntegrationBuilder", () => {
       expect(integration.syncSchedules).toBeUndefined();
     });
 
+    it("should support BASELINE sync schedule type with maxRetries", () => {
+      const collection = defineCollection("contacts").deploy();
+
+      const integration = defineIntegration("baseline-schedule")
+        .withApp("salesforce")
+        .withCollection(collection)
+        .addSyncSchedule({ type: "BASELINE", maxRetries: 3 })
+        .deploy();
+
+      expect(integration.syncSchedules).toHaveLength(1);
+      expect(integration.syncSchedules?.[0].type).toBe("BASELINE");
+      expect(integration.syncSchedules?.[0].maxRetries).toBe(3);
+      expect(integration.syncSchedules?.[0].every).toBeUndefined();
+    });
+
+    it("should support all three sync schedule types together", () => {
+      const collection = defineCollection("contacts").deploy();
+
+      const integration = defineIntegration("all-schedule-types")
+        .withApp("salesforce")
+        .withCollection(collection)
+        .withSyncSchedules([
+          { type: "INCREMENTAL", every: "5 minutes" },
+          { type: "FULL", every: "1 day" },
+          { type: "BASELINE", maxRetries: 5 },
+        ])
+        .deploy();
+
+      expect(integration.syncSchedules).toHaveLength(3);
+      expect(integration.syncSchedules?.[0].type).toBe("INCREMENTAL");
+      expect(integration.syncSchedules?.[1].type).toBe("FULL");
+      expect(integration.syncSchedules?.[2].type).toBe("BASELINE");
+      expect(integration.syncSchedules?.[2].maxRetries).toBe(5);
+    });
+
+    it("should support object-based configuration with baseline", () => {
+      const collection = defineCollection("contacts").deploy();
+
+      const integration = defineIntegration("object-with-baseline")
+        .withApp("salesforce")
+        .withCollection(collection)
+        .withSyncSchedules({
+          incremental: { every: "5 minutes" },
+          full: { every: "1 day" },
+          baseline: { maxRetries: 3 },
+        })
+        .deploy();
+
+      expect(integration.syncSchedules).toHaveLength(3);
+      expect(integration.syncSchedules?.[0].type).toBe("INCREMENTAL");
+      expect(integration.syncSchedules?.[1].type).toBe("FULL");
+      expect(integration.syncSchedules?.[2].type).toBe("BASELINE");
+      expect(integration.syncSchedules?.[2].maxRetries).toBe(3);
+      expect(integration.syncSchedules?.[2].every).toBeUndefined();
+    });
+
+    it("should support baseline-only object-based configuration", () => {
+      const collection = defineCollection("contacts").deploy();
+
+      const integration = defineIntegration("baseline-only-object")
+        .withApp("salesforce")
+        .withCollection(collection)
+        .withSyncSchedules({
+          baseline: { maxRetries: 5 },
+        })
+        .deploy();
+
+      expect(integration.syncSchedules).toHaveLength(1);
+      expect(integration.syncSchedules?.[0].type).toBe("BASELINE");
+      expect(integration.syncSchedules?.[0].maxRetries).toBe(5);
+    });
+
     it("should clear schedules when empty object is passed (no prior schedules)", () => {
       const collection = defineCollection("contacts").deploy();
 
@@ -749,7 +821,8 @@ describe("IntegrationBuilder", () => {
         .withReadOnlyModels(["owner"])
         .deploy();
 
-      const copied = defineIntegration.from(original)
+      const copied = defineIntegration
+        .from(original)
         .withApp("hubspot")
         .withCollection(collection)
         .deploy();

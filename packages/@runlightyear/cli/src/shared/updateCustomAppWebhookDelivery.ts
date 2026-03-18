@@ -32,7 +32,7 @@ export async function updateCustomAppWebhookDelivery(
   let response;
 
   try {
-    const url = `${baseUrl}/api/v1/envs/${envName}/custom-apps/${customAppName}/webhook/deliveries/${deliveryId}`;
+    const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}/webhook/deliveries/${deliveryId}`;
 
     console.debug("updating delivery at", url);
 

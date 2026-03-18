@@ -30,7 +30,7 @@ export async function execLocalHttpRequest(props: ExecLocalHttpRequestProps) {
   try {
     // 1. Fetch request details
     const requestResponse = await fetch(
-      `${baseUrl}/api/v1/envs/${envName}/http-requests/${httpRequestId}/raw`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/http-requests/${httpRequestId}/raw`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -51,6 +51,14 @@ export async function execLocalHttpRequest(props: ExecLocalHttpRequestProps) {
     console.warn("[localhost-proxy] Received from /raw endpoint:");
     console.warn(JSON.stringify(httpRequest, null, 2));
 
+    // Check if request is already in a terminal state (server timed out)
+    if (httpRequest.status === "FAILED" || httpRequest.status === "SUCCEEDED") {
+      console.warn(
+        `[localhost-proxy] Request ${httpRequestId} already ${httpRequest.status}, skipping`
+      );
+      return;
+    }
+
     // 2. Execute localhost request
     const { method, requestHeaders, requestBody } = httpRequest;
     url = httpRequest.url;
@@ -66,7 +74,7 @@ export async function execLocalHttpRequest(props: ExecLocalHttpRequestProps) {
       headers: requestHeaders || {},
       body: requestBody || undefined,
       redirect: "follow",
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(55000), // 55s timeout, leaving 5s buffer for delivery before server's 60s timeout
     });
 
     // 3. Prepare response
@@ -111,7 +119,7 @@ async function sendProxyResponse(
   );
 
   const deliveryResponse = await fetch(
-    `${baseUrl}/api/v1/envs/${envName}/http-requests/${httpRequestId}/dev-proxy-response`,
+    `${baseUrl}/api/v1/projects/default/envs/${envName}/http-requests/${httpRequestId}/dev-proxy-response`,
     {
       method: "PATCH",
       headers: {
@@ -124,11 +132,19 @@ async function sendProxyResponse(
 
   if (!deliveryResponse.ok) {
     const errorText = await deliveryResponse.text();
-    console.error(
-      `[localhost-proxy] Failed to deliver response for ${httpRequestId}:`,
-      deliveryResponse.status,
-      deliveryResponse.statusText,
-      errorText
-    );
+    // 409 usually means the server already timed out and marked the request as FAILED
+    // This is expected when the localhost request takes longer than the server timeout
+    if (deliveryResponse.status === 409) {
+      console.warn(
+        `[localhost-proxy] Could not deliver response for ${httpRequestId} - server already timed out`
+      );
+    } else {
+      console.error(
+        `[localhost-proxy] Failed to deliver response for ${httpRequestId}:`,
+        deliveryResponse.status,
+        deliveryResponse.statusText,
+        errorText
+      );
+    }
   }
 }

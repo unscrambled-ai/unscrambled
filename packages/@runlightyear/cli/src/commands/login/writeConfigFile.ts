@@ -1,7 +1,12 @@
 import { program } from "commander";
 import { ServerResponse } from "http";
 import { terminal } from "terminal-kit";
-import { writeConfig, getConfigFilePath } from "../../shared/configManager";
+import {
+  readConfig,
+  writeConfig,
+  getConfigFilePath,
+  LightyearConfig,
+} from "../../shared/configManager";
 
 export default async function writeConfigFile(
   {
@@ -11,13 +16,18 @@ export default async function writeConfigFile(
   res: ServerResponse
 ) {
   try {
-    const config: { apiKey: string; baseUrl?: string } = {
+    const existing = readConfig();
+
+    const config: LightyearConfig = {
+      ...existing,
       apiKey: LIGHTYEAR_API_KEY,
     };
 
     // Only store baseUrl if it's not the default production URL
     if (baseUrl !== "https://app.runlightyear.com") {
       config.baseUrl = baseUrl;
+    } else {
+      delete config.baseUrl;
     }
 
     writeConfig(config);
