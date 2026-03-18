@@ -1,5 +1,11 @@
 # @unscrambled/salesforce
 
+## 0.2.0
+
+### Minor Changes
+
+- Rebrand from @runlightyear to @unscrambled
+
 ## 0.10.2
 
 ### Patch Changes

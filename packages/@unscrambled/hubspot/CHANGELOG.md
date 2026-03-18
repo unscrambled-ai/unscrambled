@@ -1,5 +1,11 @@
 # @unscrambled/hubspot
 
+## 0.2.0
+
+### Minor Changes
+
+- Rebrand from @runlightyear to @unscrambled
+
 ## 1.1.0
 
 ### Minor Changes

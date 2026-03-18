@@ -1,5 +1,16 @@
 # @unscrambled/cli
 
+## 0.2.0
+
+### Minor Changes
+
+- Rebrand from @runlightyear to @unscrambled
+
+  - Renamed package to @unscrambled/cli
+  - CLI binary renamed from `lightyear` to `un`
+  - Config directory moved from ~/.lightyear to ~/.unscrambled
+  - Environment variables renamed: LIGHTYEAR_API_KEY -> UNSCRAMBLED_API_KEY, LIGHTYEAR_ENV -> UNSCRAMBLED_ENV
+
 ## 1.7.3
 
 ### Patch Changes
