@@ -130,11 +130,15 @@ export class PrefixedRedactedConsole {
 
     if (envName === "dev") {
       stream.write(
-        `${this.globalPrefix ? this.globalPrefix + " " : ""}${color}${message}\x1b[0m\n`,
+        `${
+          this.globalPrefix ? this.globalPrefix + " " : ""
+        }${color}${message}\x1b[0m\n`
       );
       return;
     }
 
-    stream.write(`${this.globalPrefix ? this.globalPrefix + " " : ""}${message}\n`);
+    stream.write(
+      `${this.globalPrefix ? this.globalPrefix + " " : ""}${message}\n`
+    );
   }
 }

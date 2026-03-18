@@ -5,7 +5,10 @@ import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import { getEnvName } from "../../shared/getEnvName";
-import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
+import {
+  checkResponseOk,
+  parseJsonResponse,
+} from "../../shared/parseJsonResponse";
 
 type OutputFormat = "text" | "json";
 
@@ -28,8 +31,12 @@ export const actions = new Command("actions").description(
 actions
   .command("list")
   .description("List all actions")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
-  .addOption(new Option("-i, --integration <name>", "Filter by integration name"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
+  .addOption(
+    new Option("-i, --integration <name>", "Filter by integration name")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -48,7 +55,9 @@ actions
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -58,7 +67,8 @@ actions
         const apiKey = getApiKey();
 
         const params = new URLSearchParams();
-        if (options.integration) params.set("integrationName", options.integration);
+        if (options.integration)
+          params.set("integrationName", options.integration);
 
         const response = await fetch(
           `${baseUrl}/api/v1/projects/default/envs/${envName}/actions?${params}`,
@@ -71,10 +81,14 @@ actions
 
         if (!response.ok) {
           checkResponseOk(response, "List actions");
-          throw new Error(`List actions failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `List actions failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const result = await parseJsonResponse(response, { operationName: "list actions" });
+        const result = await parseJsonResponse(response, {
+          operationName: "list actions",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -89,7 +103,9 @@ actions
           for (const act of actions) {
             terminal.bold(`${act.name}`);
             terminal(` (${act.title})\n`);
-            terminal.gray(`  integration: ${act.integration?.name || "(none)"}\n`);
+            terminal.gray(
+              `  integration: ${act.integration?.name || "(none)"}\n`
+            );
             if (act.trigger) {
               terminal.gray(`  trigger: ${act.trigger}\n`);
             }
@@ -99,7 +115,9 @@ actions
           terminal(`Total: ${actions.length} action(s)\n`);
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -110,8 +128,15 @@ actions
   .command("trigger")
   .description("Manually trigger an action")
   .argument("<name>", "Action name")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
-  .addOption(new Option("-m, --managed-user-external-id <id>", "Managed user external ID"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
+  .addOption(
+    new Option(
+      "-m, --managed-user-external-id <id>",
+      "Managed user external ID"
+    )
+  )
   .addOption(new Option("-d, --data <json>", "JSON data to pass to the action"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
@@ -135,7 +160,9 @@ actions
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -180,12 +207,16 @@ actions
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          terminal.red(`Trigger failed: ${errorData.message || response.statusText}\n`);
+          terminal.red(
+            `Trigger failed: ${errorData.message || response.statusText}\n`
+          );
           process.exitCode = 1;
           return;
         }
 
-        const result = await parseJsonResponse(response, { operationName: "trigger action" });
+        const result = await parseJsonResponse(response, {
+          operationName: "trigger action",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -197,7 +228,9 @@ actions
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }

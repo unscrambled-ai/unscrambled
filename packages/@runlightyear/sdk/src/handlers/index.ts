@@ -140,7 +140,7 @@ export const handler: DirectHandler = async (
           try {
             const integrationName = runData?.integration?.name;
             const managedUser = runData?.managedUser;
-            
+
             const extraContext: any = {};
             if (integrationName) extraContext.integrationName = integrationName;
             try {
@@ -227,7 +227,9 @@ export const handler: DirectHandler = async (
           console.log(
             `🔗 Setting authorizerActivityId in log context: ${getAuthData.authorizerActivityId}`
           );
-          setLogContext({ authorizerActivityId: getAuthData.authorizerActivityId });
+          setLogContext({
+            authorizerActivityId: getAuthData.authorizerActivityId,
+          });
         }
 
         // Set environment variables for OAuth handler to use
@@ -282,7 +284,9 @@ export const handler: DirectHandler = async (
           console.log(
             `🔗 Setting authorizerActivityId in log context: ${requestTokenData.authorizerActivityId}`
           );
-          setLogContext({ authorizerActivityId: requestTokenData.authorizerActivityId });
+          setLogContext({
+            authorizerActivityId: requestTokenData.authorizerActivityId,
+          });
         }
 
         // Set environment variables for OAuth handler to use
@@ -338,7 +342,9 @@ export const handler: DirectHandler = async (
           console.log(
             `🔗 Setting authorizerActivityId in log context: ${refreshTokenData.authorizerActivityId}`
           );
-          setLogContext({ authorizerActivityId: refreshTokenData.authorizerActivityId });
+          setLogContext({
+            authorizerActivityId: refreshTokenData.authorizerActivityId,
+          });
         }
 
         // Set environment variables for OAuth handler to use

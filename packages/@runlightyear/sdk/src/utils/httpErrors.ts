@@ -72,7 +72,6 @@ export function isSyncCanceledError(error: unknown): boolean {
   if (status !== 409) return false;
 
   // Check for the specific message indicating sync cancellation
-  const message =
-    error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
   return message.includes("Sync is not running");
 }

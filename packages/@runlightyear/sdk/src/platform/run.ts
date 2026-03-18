@@ -33,8 +33,11 @@ export async function finishRun(props: FinishRunProps): Promise<void> {
   const envName = getEnvName();
   const { runId, status, rerun = false } = props;
 
-  await makeApiRequest(`/api/v1/projects/default/envs/${envName}/runs/${runId}/finish`, {
-    method: "POST",
-    data: { status, rerun },
-  });
+  await makeApiRequest(
+    `/api/v1/projects/default/envs/${envName}/runs/${runId}/finish`,
+    {
+      method: "POST",
+      data: { status, rerun },
+    }
+  );
 }

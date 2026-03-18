@@ -2330,7 +2330,11 @@ export class SyncConnector<
       const sync = await getSync({ syncId });
 
       const resolveSyncTimeLimitMs = (value: unknown): number | undefined => {
-        if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+        if (
+          typeof value !== "number" ||
+          !Number.isFinite(value) ||
+          value <= 0
+        ) {
           return undefined;
         }
 
@@ -2787,7 +2791,8 @@ export class SyncConnector<
                   return;
                 }
 
-                const result = await changeProcessor.processUnconfirmedChanges();
+                const result =
+                  await changeProcessor.processUnconfirmedChanges();
 
                 // If no pending writes and no changes, check if we've seen zeros consistently
                 // This handles the case where requests haven't been queued yet

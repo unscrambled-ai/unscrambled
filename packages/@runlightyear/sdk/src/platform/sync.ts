@@ -214,25 +214,35 @@ export async function updateSync(props: {
 
 export async function pauseSync(syncId: string): Promise<void> {
   const envName = process.env.ENV_NAME || "dev";
-  await makeApiRequest(`/api/v1/projects/default/envs/${envName}/syncs/${syncId}/pause`, {
-    method: "POST",
-  });
+  await makeApiRequest(
+    `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/pause`,
+    {
+      method: "POST",
+    }
+  );
 }
 
 export async function continueSync(syncId: string): Promise<void> {
   const envName = getEnvName();
   console.warn(`⚠️ [DEBUG] Calling continueSync for syncId=${syncId}`);
-  const response = await makeApiRequest(`/api/v1/projects/default/envs/${envName}/syncs/${syncId}/continue`, {
-    method: "POST",
-  });
-  
+  const response = await makeApiRequest(
+    `/api/v1/projects/default/envs/${envName}/syncs/${syncId}/continue`,
+    {
+      method: "POST",
+    }
+  );
+
   // Dump all response headers for debugging
   const headers: Record<string, string> = {};
   response.headers.forEach((value, key) => {
     headers[key] = value;
   });
-  
-  console.warn(`⚠️ [DEBUG] continueSync completed: syncId=${syncId} status=${response.status} headers=${JSON.stringify(headers)}`);
+
+  console.warn(
+    `⚠️ [DEBUG] continueSync completed: syncId=${syncId} status=${
+      response.status
+    } headers=${JSON.stringify(headers)}`
+  );
 }
 
 export async function finishSync(

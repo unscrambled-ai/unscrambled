@@ -27,13 +27,35 @@ export const httpRequests = new Command("requests").description(
 httpRequests
   .command("list")
   .description("List HTTP requests")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("--sync <syncId>", "Filter by sync ID"))
   .addOption(new Option("--run <runId>", "Filter by run ID"))
-  .addOption(new Option("--status <status>", "Filter by status (QUEUED, RUNNING, SUCCEEDED, FAILED)"))
-  .addOption(new Option("--after <timestamp>", "Show requests after this timestamp (ISO 8601)"))
-  .addOption(new Option("--before <timestamp>", "Show requests before this timestamp (ISO 8601)"))
-  .addOption(new Option("-l, --limit <count>", "Max number of requests to return").default("20"))
+  .addOption(
+    new Option(
+      "--status <status>",
+      "Filter by status (QUEUED, RUNNING, SUCCEEDED, FAILED)"
+    )
+  )
+  .addOption(
+    new Option(
+      "--after <timestamp>",
+      "Show requests after this timestamp (ISO 8601)"
+    )
+  )
+  .addOption(
+    new Option(
+      "--before <timestamp>",
+      "Show requests before this timestamp (ISO 8601)"
+    )
+  )
+  .addOption(
+    new Option(
+      "-l, --limit <count>",
+      "Max number of requests to return"
+    ).default("20")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -57,7 +79,9 @@ httpRequests
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -83,12 +107,14 @@ httpRequests
         );
 
         if (!response.ok) {
-          terminal.red(`List HTTP requests failed: HTTP ${response.status} ${response.statusText}\n`);
+          terminal.red(
+            `List HTTP requests failed: HTTP ${response.status} ${response.statusText}\n`
+          );
           process.exitCode = 1;
           return;
         }
 
-        const result = await response.json() as {
+        const result = (await response.json()) as {
           httpRequests: Array<{
             id: string;
             method: string;
@@ -118,22 +144,31 @@ httpRequests
           const limit = parseInt(options.limit, 10);
           for (const req of requests.slice(0, limit)) {
             const statusColor =
-              req.status === "SUCCEEDED" ? terminal.green :
-              req.status === "FAILED" ? terminal.red :
-              req.status === "RUNNING" ? terminal.yellow :
-              terminal;
+              req.status === "SUCCEEDED"
+                ? terminal.green
+                : req.status === "FAILED"
+                ? terminal.red
+                : req.status === "RUNNING"
+                ? terminal.yellow
+                : terminal;
 
             // Calculate duration if we have timing
             let duration = "";
             if (req.startedAt && req.endedAt) {
-              const ms = new Date(req.endedAt).getTime() - new Date(req.startedAt).getTime();
+              const ms =
+                new Date(req.endedAt).getTime() -
+                new Date(req.startedAt).getTime();
               duration = ` (${ms}ms)`;
             }
 
             // Format: [status] METHOD url (duration) - HTTP statusCode
-            const httpStatus = req.statusCode ? ` - ${req.statusCode} ${req.statusText ?? ""}` : "";
-            const time = new Date(req.createdAt).toISOString().substring(11, 19);
-            
+            const httpStatus = req.statusCode
+              ? ` - ${req.statusCode} ${req.statusText ?? ""}`
+              : "";
+            const time = new Date(req.createdAt)
+              .toISOString()
+              .substring(11, 19);
+
             terminal(`[${time}] `);
             statusColor(`${req.status.padEnd(9)} `);
             terminal(`${req.method.padEnd(6)} `);
@@ -148,7 +183,9 @@ httpRequests
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -159,7 +196,9 @@ httpRequests
   .command("get")
   .description("Get full details of an HTTP request including headers and body")
   .argument("<requestId>", "HTTP Request ID")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -180,7 +219,9 @@ httpRequests
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -202,13 +243,15 @@ httpRequests
           if (response.status === 404) {
             terminal.red(`HTTP request '${requestId}' not found\n`);
           } else {
-            terminal.red(`Get HTTP request failed: HTTP ${response.status} ${response.statusText}\n`);
+            terminal.red(
+              `Get HTTP request failed: HTTP ${response.status} ${response.statusText}\n`
+            );
           }
           process.exitCode = 1;
           return;
         }
 
-        const req = await response.json() as {
+        const req = (await response.json()) as {
           id: string;
           method: string;
           url: string;
@@ -231,7 +274,9 @@ httpRequests
           // Calculate duration
           let duration = "";
           if (req.startedAt && req.endedAt) {
-            const ms = new Date(req.endedAt).getTime() - new Date(req.startedAt).getTime();
+            const ms =
+              new Date(req.endedAt).getTime() -
+              new Date(req.startedAt).getTime();
             duration = `${ms}ms`;
           }
 
@@ -239,9 +284,11 @@ httpRequests
 
           // Status and timing
           const statusColor =
-            req.status === "SUCCEEDED" ? terminal.green :
-            req.status === "FAILED" ? terminal.red :
-            terminal.yellow;
+            req.status === "SUCCEEDED"
+              ? terminal.green
+              : req.status === "FAILED"
+              ? terminal.red
+              : terminal.yellow;
           terminal("Status:   ");
           statusColor(`${req.status}\n`);
           terminal(`Created:  ${req.createdAt}\n`);
@@ -257,9 +304,10 @@ httpRequests
             terminal("\nHeaders:\n");
             for (const [key, value] of Object.entries(req.headers)) {
               // Redact auth headers
-              const displayValue = key.toLowerCase() === "authorization" 
-                ? value.substring(0, 15) + "..." 
-                : value;
+              const displayValue =
+                key.toLowerCase() === "authorization"
+                  ? value.substring(0, 15) + "..."
+                  : value;
               terminal.gray(`  ${key}: ${displayValue}\n`);
             }
           }
@@ -277,16 +325,20 @@ httpRequests
           // Response
           terminal.bold("--- Response ---\n");
           if (req.statusCode) {
-            const respColor = req.statusCode >= 200 && req.statusCode < 300 
-              ? terminal.green 
-              : req.statusCode >= 400 
-                ? terminal.red 
+            const respColor =
+              req.statusCode >= 200 && req.statusCode < 300
+                ? terminal.green
+                : req.statusCode >= 400
+                ? terminal.red
                 : terminal.yellow;
             respColor(`${req.statusCode} ${req.statusText ?? ""}\n`);
           } else {
             terminal.gray("(no response)\n");
           }
-          if (req.responseHeaders && Object.keys(req.responseHeaders).length > 0) {
+          if (
+            req.responseHeaders &&
+            Object.keys(req.responseHeaders).length > 0
+          ) {
             terminal("\nHeaders:\n");
             for (const [key, value] of Object.entries(req.responseHeaders)) {
               terminal.gray(`  ${key}: ${value}\n`);
@@ -307,7 +359,9 @@ httpRequests
             } catch {
               if (req.responseBody.length > 2000) {
                 terminal.gray(`${req.responseBody.substring(0, 2000)}...\n`);
-                terminal.gray(`(truncated, ${req.responseBody.length} bytes total)\n`);
+                terminal.gray(
+                  `(truncated, ${req.responseBody.length} bytes total)\n`
+                );
               } else {
                 terminal.gray(`${req.responseBody}\n`);
               }
@@ -319,7 +373,9 @@ httpRequests
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }

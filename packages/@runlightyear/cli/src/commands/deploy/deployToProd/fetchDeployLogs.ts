@@ -63,7 +63,8 @@ export default async function fetchDeployLogs(
   if (response.ok) {
     return await response.json();
   } else {
-    program.error(`Error fetching deploy logs: ${response.status} ${response.statusText}`);
+    program.error(
+      `Error fetching deploy logs: ${response.status} ${response.statusText}`
+    );
   }
 }
-

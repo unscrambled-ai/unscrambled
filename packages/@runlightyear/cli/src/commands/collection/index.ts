@@ -5,7 +5,10 @@ import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import { getEnvName } from "../../shared/getEnvName";
-import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
+import {
+  checkResponseOk,
+  parseJsonResponse,
+} from "../../shared/parseJsonResponse";
 
 type OutputFormat = "text" | "json";
 
@@ -28,21 +31,29 @@ export const collections = new Command("collections").description(
 collections
   .command("list")
   .description("List all collections and their models")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
       .default("text")
   )
   .action(
-    async (options: { env?: string; environment?: string; output: OutputFormat }) => {
+    async (options: {
+      env?: string;
+      environment?: string;
+      output: OutputFormat;
+    }) => {
       requireAuth();
 
       let envName: string;
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -95,7 +106,9 @@ collections
           terminal(`Total: ${collections.length} collection(s)\n`);
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -106,7 +119,9 @@ collections
   .command("get")
   .description("Get details for a specific collection")
   .argument("<collectionName>", "Collection name")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -123,7 +138,9 @@ collections
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -177,7 +194,9 @@ collections
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -188,9 +207,18 @@ collections
   .command("stats")
   .description("Get object counts per model for a collection")
   .argument("<collectionName>", "Collection name")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
-  .addOption(new Option("-u, --managed-user-id <id>", "Filter by managed user ID (UUID)"))
-  .addOption(new Option("-m, --managed-user-external-id <id>", "Filter by managed user external ID"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
+  .addOption(
+    new Option("-u, --managed-user-id <id>", "Filter by managed user ID (UUID)")
+  )
+  .addOption(
+    new Option(
+      "-m, --managed-user-external-id <id>",
+      "Filter by managed user external ID"
+    )
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -213,7 +241,9 @@ collections
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -228,7 +258,9 @@ collections
 
         if (options.managedUserExternalId && !managedUserId) {
           const muResponse = await fetch(
-            `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/external-id/${encodeURIComponent(options.managedUserExternalId)}`,
+            `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/external-id/${encodeURIComponent(
+              options.managedUserExternalId
+            )}`,
             {
               headers: {
                 Authorization: `Bearer ${apiKey}`,
@@ -238,16 +270,21 @@ collections
 
           if (!muResponse.ok) {
             if (muResponse.status === 404) {
-              terminal.red(`Managed user with external ID '${options.managedUserExternalId}' not found\n`);
+              terminal.red(
+                `Managed user with external ID '${options.managedUserExternalId}' not found\n`
+              );
               process.exitCode = 1;
               return;
             }
-            throw new Error(`Failed to look up managed user: HTTP ${muResponse.status}`);
+            throw new Error(
+              `Failed to look up managed user: HTTP ${muResponse.status}`
+            );
           }
 
           const muData = await muResponse.json();
           managedUserId = muData.id;
-          managedUserDisplay = muData.displayName || options.managedUserExternalId;
+          managedUserDisplay =
+            muData.displayName || options.managedUserExternalId;
         } else if (managedUserId) {
           managedUserDisplay = managedUserId;
         }
@@ -295,7 +332,9 @@ collections
         for (const model of coll.models) {
           // Build query params
           const baseParams = `collectionName=${collectionName}&modelName=${model.name}&countOnly=true`;
-          const managedUserParam = managedUserId ? `&managedUserId=${managedUserId}` : "";
+          const managedUserParam = managedUserId
+            ? `&managedUserId=${managedUserId}`
+            : "";
 
           // Get UPSERTED count
           const upsertedResponse = await fetch(
@@ -365,7 +404,13 @@ collections
           }
           terminal("\n");
 
-          terminal.bold("Model".padEnd(30) + "Upserted".padStart(12) + "Deleted".padStart(12) + "Total".padStart(12) + "\n");
+          terminal.bold(
+            "Model".padEnd(30) +
+              "Upserted".padStart(12) +
+              "Deleted".padStart(12) +
+              "Total".padStart(12) +
+              "\n"
+          );
           terminal("-".repeat(66) + "\n");
 
           for (const s of stats) {
@@ -393,7 +438,9 @@ collections
           );
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -402,9 +449,13 @@ collections
 // Reset sync state for a collection
 collections
   .command("reset")
-  .description("Reset sync state for a collection (clears cursors, forces full re-sync)")
+  .description(
+    "Reset sync state for a collection (clears cursors, forces full re-sync)"
+  )
   .argument("<collectionName>", "Collection name")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("-f, --force", "Skip confirmation prompt"))
   .action(
     async (
@@ -417,7 +468,9 @@ collections
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -449,7 +502,9 @@ collections
         terminal(`Schema Version: ${coll.schemaVersion ?? "(none)"}\n`);
         terminal(`Models: ${coll.models?.length ?? 0}\n\n`);
 
-        terminal.yellow("This will reset all sync cursors and force a full re-sync.\n");
+        terminal.yellow(
+          "This will reset all sync cursors and force a full re-sync.\n"
+        );
         terminal.yellow("Existing objects will NOT be deleted.\n\n");
 
         if (!options.force) {
@@ -482,7 +537,9 @@ collections
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          terminal.red(`Reset failed: ${errorData.message || response.statusText}\n`);
+          terminal.red(
+            `Reset failed: ${errorData.message || response.statusText}\n`
+          );
           process.exitCode = 1;
           return;
         }
@@ -490,7 +547,9 @@ collections
         terminal.green("Collection reset successfully.\n");
         terminal("Next sync will perform a full re-sync.\n");
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -501,7 +560,9 @@ collections
   .command("clear")
   .description("Clear all objects from a collection (DESTRUCTIVE)")
   .argument("<collectionName>", "Collection name")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("-f, --force", "Skip confirmation prompt"))
   .action(
     async (
@@ -514,7 +575,9 @@ collections
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -545,7 +608,9 @@ collections
         terminal(`Collection: ${coll.name} (${coll.title})\n`);
         terminal(`Models: ${coll.models?.length ?? 0}\n\n`);
 
-        terminal.red.bold("WARNING: This will DELETE ALL OBJECTS in this collection!\n");
+        terminal.red.bold(
+          "WARNING: This will DELETE ALL OBJECTS in this collection!\n"
+        );
         terminal.red("This action cannot be undone.\n\n");
 
         if (!options.force) {
@@ -579,7 +644,9 @@ collections
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          terminal.red(`Clear failed: ${errorData.message || response.statusText}\n`);
+          terminal.red(
+            `Clear failed: ${errorData.message || response.statusText}\n`
+          );
           process.exitCode = 1;
           return;
         }
@@ -590,7 +657,9 @@ collections
           terminal(`Deleted ${result.deletedCount} objects.\n`);
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }

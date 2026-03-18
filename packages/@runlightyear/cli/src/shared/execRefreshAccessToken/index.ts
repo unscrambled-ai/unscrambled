@@ -51,7 +51,7 @@ export async function execRefreshAccessToken(
   } catch (error) {
     prepareConsole();
     console.error(`Error loading compiled code for refreshAccessToken:`, error);
-    
+
     // Update activity as failed
     if (authorizerActivityId) {
       await updateAuthorizerActivity({
@@ -60,12 +60,14 @@ export async function execRefreshAccessToken(
         status: "FAILED",
         logs: [
           `[ERROR] ${
-            error instanceof Error ? error.message || String(error) : String(error)
+            error instanceof Error
+              ? error.message || String(error)
+              : String(error)
           }`,
         ],
       });
     }
-    
+
     throw error;
   }
 

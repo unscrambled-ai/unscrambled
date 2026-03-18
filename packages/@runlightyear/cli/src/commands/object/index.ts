@@ -5,7 +5,10 @@ import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import { getEnvName } from "../../shared/getEnvName";
-import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
+import {
+  checkResponseOk,
+  parseJsonResponse,
+} from "../../shared/parseJsonResponse";
 
 type OutputFormat = "text" | "json";
 
@@ -29,7 +32,9 @@ objects
   .command("get")
   .description("Get a single object by ID")
   .argument("<objectId>", "Object ID (UUID)")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -46,7 +51,9 @@ objects
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -71,10 +78,14 @@ objects
             return;
           }
           checkResponseOk(response, "Get object");
-          throw new Error(`Get object failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `Get object failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const obj = await parseJsonResponse(response, { operationName: "get object" });
+        const obj = await parseJsonResponse(response, {
+          operationName: "get object",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(obj, null, 2)}\n`);
@@ -94,7 +105,8 @@ objects
           if (obj.externalObjects && obj.externalObjects.length > 0) {
             terminal(`\nExternal Objects (${obj.externalObjects.length}):\n`);
             for (const eo of obj.externalObjects) {
-              const integration = eo.app?.name || eo.customApp?.name || "(unknown)";
+              const integration =
+                eo.app?.name || eo.customApp?.name || "(unknown)";
               terminal(`  - ${integration}: ${eo.externalId}\n`);
               terminal.gray(`    externalUpdatedAt: ${eo.externalUpdatedAt}\n`);
             }
@@ -103,7 +115,8 @@ objects
           if (obj.data) {
             terminal(`\nData:\n`);
             try {
-              const parsed = typeof obj.data === "string" ? JSON.parse(obj.data) : obj.data;
+              const parsed =
+                typeof obj.data === "string" ? JSON.parse(obj.data) : obj.data;
               terminal(`${JSON.stringify(parsed, null, 2)}\n`);
             } catch {
               terminal(`${obj.data}\n`);
@@ -111,7 +124,9 @@ objects
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -121,16 +136,32 @@ objects
 objects
   .command("list")
   .description("List objects with optional filters")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("-c, --collection <name>", "Filter by collection name"))
   .addOption(new Option("--model <name>", "Filter by model name"))
-  .addOption(new Option("-u, --managed-user-id <id>", "Filter by managed user ID (UUID)"))
-  .addOption(new Option("-m, --managed-user-external-id <id>", "Filter by managed user external ID"))
+  .addOption(
+    new Option("-u, --managed-user-id <id>", "Filter by managed user ID (UUID)")
+  )
+  .addOption(
+    new Option(
+      "-m, --managed-user-external-id <id>",
+      "Filter by managed user external ID"
+    )
+  )
   .addOption(new Option("--app <name>", "Filter by app name"))
   .addOption(new Option("--custom-app <name>", "Filter by custom app name"))
   .addOption(new Option("-q, --query <text>", "Search query"))
-  .addOption(new Option("--status <status>", "Filter by status (UPSERTED, DELETED)"))
-  .addOption(new Option("-l, --limit <count>", "Max number of objects to return").default("20"))
+  .addOption(
+    new Option("--status <status>", "Filter by status (UPSERTED, DELETED)")
+  )
+  .addOption(
+    new Option(
+      "-l, --limit <count>",
+      "Max number of objects to return"
+    ).default("20")
+  )
   .addOption(new Option("--count-only", "Only return the count"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
@@ -159,7 +190,9 @@ objects
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -172,18 +205,24 @@ objects
         let managedUserId = options.managedUserId;
         if (options.managedUserExternalId && !managedUserId) {
           const muResponse = await fetch(
-            `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/external-id/${encodeURIComponent(options.managedUserExternalId)}`,
+            `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/external-id/${encodeURIComponent(
+              options.managedUserExternalId
+            )}`,
             {
               headers: { Authorization: `Bearer ${apiKey}` },
             }
           );
           if (!muResponse.ok) {
             if (muResponse.status === 404) {
-              terminal.red(`Managed user with external ID '${options.managedUserExternalId}' not found\n`);
+              terminal.red(
+                `Managed user with external ID '${options.managedUserExternalId}' not found\n`
+              );
               process.exitCode = 1;
               return;
             }
-            throw new Error(`Failed to look up managed user: HTTP ${muResponse.status}`);
+            throw new Error(
+              `Failed to look up managed user: HTTP ${muResponse.status}`
+            );
           }
           const muData = await muResponse.json();
           managedUserId = muData.id;
@@ -191,7 +230,8 @@ objects
 
         // Build query params
         const params = new URLSearchParams();
-        if (options.collection) params.set("collectionName", options.collection);
+        if (options.collection)
+          params.set("collectionName", options.collection);
         if (options.model) params.set("modelName", options.model);
         if (managedUserId) params.set("managedUserId", managedUserId);
         if (options.app) params.set("appName", options.app);
@@ -211,10 +251,14 @@ objects
 
         if (!response.ok) {
           checkResponseOk(response, "List objects");
-          throw new Error(`List objects failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `List objects failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const result = await parseJsonResponse(response, { operationName: "list objects" });
+        const result = await parseJsonResponse(response, {
+          operationName: "list objects",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -251,9 +295,14 @@ objects
             // Show abbreviated data
             if (obj.data) {
               try {
-                const parsed = typeof obj.data === "string" ? JSON.parse(obj.data) : obj.data;
+                const parsed =
+                  typeof obj.data === "string"
+                    ? JSON.parse(obj.data)
+                    : obj.data;
                 const keys = Object.keys(parsed).slice(0, 3);
-                terminal.gray(`  data: { ${keys.map(k => `${k}: ...`).join(", ")} }\n`);
+                terminal.gray(
+                  `  data: { ${keys.map((k) => `${k}: ...`).join(", ")} }\n`
+                );
               } catch {
                 terminal.gray(`  data: (present)\n`);
               }
@@ -261,13 +310,19 @@ objects
             terminal("\n");
           }
 
-          terminal(`Showing ${Math.min(objects.length, limit)} of ${objects.length} objects\n`);
+          terminal(
+            `Showing ${Math.min(objects.length, limit)} of ${
+              objects.length
+            } objects\n`
+          );
           if (result.cursor) {
             terminal.gray(`(more available, use cursor: ${result.cursor})\n`);
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -276,9 +331,13 @@ objects
 // Show external object mappings for an object
 objects
   .command("external")
-  .description("Show external object mappings for an object (debug sync issues)")
+  .description(
+    "Show external object mappings for an object (debug sync issues)"
+  )
   .argument("<objectId>", "Object ID (UUID)")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -295,7 +354,9 @@ objects
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -321,10 +382,14 @@ objects
             return;
           }
           checkResponseOk(response, "Get object");
-          throw new Error(`Get object failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `Get object failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const obj = await parseJsonResponse(response, { operationName: "get object" });
+        const obj = await parseJsonResponse(response, {
+          operationName: "get object",
+        });
 
         if (options.output === "json") {
           process.stdout.write(
@@ -344,15 +409,22 @@ objects
 
           if (!obj.externalObjects || obj.externalObjects.length === 0) {
             terminal.yellow("No external object mappings found.\n");
-            terminal.gray("This object has not been synced to any external system.\n");
+            terminal.gray(
+              "This object has not been synced to any external system.\n"
+            );
             return;
           }
 
-          terminal.bold("Integration".padEnd(25) + "External ID".padEnd(40) + "External Updated At\n");
+          terminal.bold(
+            "Integration".padEnd(25) +
+              "External ID".padEnd(40) +
+              "External Updated At\n"
+          );
           terminal("-".repeat(85) + "\n");
 
           for (const eo of obj.externalObjects) {
-            const integration = eo.app?.name || eo.customApp?.name || "(unknown)";
+            const integration =
+              eo.app?.name || eo.customApp?.name || "(unknown)";
             terminal(
               integration.padEnd(25) +
                 eo.externalId.padEnd(40) +
@@ -364,7 +436,9 @@ objects
           terminal(`\nTotal: ${obj.externalObjects.length} mapping(s)\n`);
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }

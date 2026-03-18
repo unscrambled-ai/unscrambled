@@ -21,12 +21,7 @@ export * from "./http";
 export * from "./logging";
 
 // Platform sync API exports (for manual sync lifecycle control)
-export {
-  getSync,
-  pauseSync,
-  continueSync,
-  finishSync,
-} from "./platform/sync";
+export { getSync, pauseSync, continueSync, finishSync } from "./platform/sync";
 
 // Built-in collections
 export * from "./collections/crm";

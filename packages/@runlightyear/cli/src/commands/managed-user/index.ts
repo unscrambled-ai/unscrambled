@@ -5,7 +5,10 @@ import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import { getEnvName } from "../../shared/getEnvName";
-import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
+import {
+  checkResponseOk,
+  parseJsonResponse,
+} from "../../shared/parseJsonResponse";
 
 type OutputFormat = "text" | "json";
 
@@ -28,8 +31,14 @@ export const managedUsers = new Command("managed-users").description(
 managedUsers
   .command("list")
   .description("List all managed users")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
-  .addOption(new Option("-l, --limit <count>", "Max number of users to return").default("20"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
+  .addOption(
+    new Option("-l, --limit <count>", "Max number of users to return").default(
+      "20"
+    )
+  )
   .addOption(new Option("--count-only", "Only return the count"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
@@ -50,7 +59,9 @@ managedUsers
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -74,10 +85,14 @@ managedUsers
 
         if (!response.ok) {
           checkResponseOk(response, "List managed users");
-          throw new Error(`List managed users failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `List managed users failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const result = await parseJsonResponse(response, { operationName: "list managed users" });
+        const result = await parseJsonResponse(response, {
+          operationName: "list managed users",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -100,7 +115,11 @@ managedUsers
             terminal(`  External ID: ${user.externalId}\n`);
             terminal.gray(`  Created: ${user.createdAt}\n`);
             if (user.integrations && user.integrations.length > 0) {
-              terminal(`  Integrations: ${user.integrations.map((i: any) => i.name).join(", ")}\n`);
+              terminal(
+                `  Integrations: ${user.integrations
+                  .map((i: any) => i.name)
+                  .join(", ")}\n`
+              );
             }
             terminal("\n");
           }
@@ -111,7 +130,9 @@ managedUsers
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -122,7 +143,9 @@ managedUsers
   .command("get")
   .description("Get a managed user by ID or external ID")
   .argument("<id>", "Managed user ID (UUID) or external ID")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("-x, --external", "Treat the ID as an external ID"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
@@ -132,7 +155,12 @@ managedUsers
   .action(
     async (
       id: string,
-      options: { env?: string; environment?: string; external?: boolean; output: OutputFormat }
+      options: {
+        env?: string;
+        environment?: string;
+        external?: boolean;
+        output: OutputFormat;
+      }
     ) => {
       requireAuth();
 
@@ -140,7 +168,9 @@ managedUsers
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -150,11 +180,17 @@ managedUsers
         const apiKey = getApiKey();
 
         // Determine if this is an external ID or internal ID
-        const isExternalId = options.external || !id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        const isExternalId =
+          options.external ||
+          !id.match(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          );
 
         let url: string;
         if (isExternalId) {
-          url = `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/external-id/${encodeURIComponent(id)}`;
+          url = `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/external-id/${encodeURIComponent(
+            id
+          )}`;
         } else {
           url = `${baseUrl}/api/v1/projects/default/envs/${envName}/managed-users/${id}`;
         }
@@ -172,10 +208,14 @@ managedUsers
             return;
           }
           checkResponseOk(response, "Get managed user");
-          throw new Error(`Get managed user failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `Get managed user failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const user = await parseJsonResponse(response, { operationName: "get managed user" });
+        const user = await parseJsonResponse(response, {
+          operationName: "get managed user",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(user, null, 2)}\n`);
@@ -189,10 +229,13 @@ managedUsers
             for (const integration of user.integrations) {
               const authStatus = integration.authStatus || "UNKNOWN";
               const statusColor =
-                authStatus === "AUTHORIZED" ? terminal.green :
-                authStatus === "UNAUTHORIZED" ? terminal.red :
-                authStatus === "EXPIRED" ? terminal.yellow :
-                terminal;
+                authStatus === "AUTHORIZED"
+                  ? terminal.green
+                  : authStatus === "UNAUTHORIZED"
+                  ? terminal.red
+                  : authStatus === "EXPIRED"
+                  ? terminal.yellow
+                  : terminal;
 
               terminal(`  - ${integration.name} (${integration.title})\n`);
               terminal(`    Auth Type: ${integration.authType}\n`);
@@ -200,10 +243,18 @@ managedUsers
               statusColor(`${authStatus}\n`);
 
               if (integration.actions && integration.actions.length > 0) {
-                terminal.gray(`    Actions: ${integration.actions.map((a: any) => a.name).join(", ")}\n`);
+                terminal.gray(
+                  `    Actions: ${integration.actions
+                    .map((a: any) => a.name)
+                    .join(", ")}\n`
+                );
               }
               if (integration.webhooks && integration.webhooks.length > 0) {
-                terminal.gray(`    Webhooks: ${integration.webhooks.map((w: any) => w.name).join(", ")}\n`);
+                terminal.gray(
+                  `    Webhooks: ${integration.webhooks
+                    .map((w: any) => w.name)
+                    .join(", ")}\n`
+                );
               }
             }
           } else {
@@ -211,7 +262,9 @@ managedUsers
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }

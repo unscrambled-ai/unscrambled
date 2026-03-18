@@ -31,7 +31,8 @@ export default async function fetchDeployStatus(
   if (response.ok) {
     return await response.json();
   } else {
-    program.error(`Error fetching deploy status: ${response.status} ${response.statusText}`);
+    program.error(
+      `Error fetching deploy status: ${response.status} ${response.statusText}`
+    );
   }
 }
-

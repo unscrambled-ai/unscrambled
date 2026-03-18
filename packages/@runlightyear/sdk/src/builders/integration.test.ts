@@ -821,7 +821,8 @@ describe("IntegrationBuilder", () => {
         .withReadOnlyModels(["owner"])
         .deploy();
 
-      const copied = defineIntegration.from(original)
+      const copied = defineIntegration
+        .from(original)
         .withApp("hubspot")
         .withCollection(collection)
         .deploy();

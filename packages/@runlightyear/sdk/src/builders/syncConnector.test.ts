@@ -316,8 +316,18 @@ describe("SyncConnector", () => {
     it("should filter list items when a filter function is provided", async () => {
       const mockResponse = {
         data: [
-          { id: "1", name: "User 1", email: "user1@example.com", updatedAt: "2024-01-01T00:00:00.000Z" },
-          { id: "2", name: "User 2", email: "user2@example.com", updatedAt: "2024-01-03T00:00:00.000Z" },
+          {
+            id: "1",
+            name: "User 1",
+            email: "user1@example.com",
+            updatedAt: "2024-01-01T00:00:00.000Z",
+          },
+          {
+            id: "2",
+            name: "User 2",
+            email: "user2@example.com",
+            updatedAt: "2024-01-03T00:00:00.000Z",
+          },
         ],
       };
 
@@ -981,9 +991,7 @@ describe("SyncConnector", () => {
       vi.restoreAllMocks();
     });
 
-    it(
-      "prefers batch create when both create and batch create are configured",
-      async () => {
+    it("prefers batch create when both create and batch create are configured", async () => {
       process.env.NODE_ENV = "development";
 
       const setContextMock = vi.fn();
@@ -1257,13 +1265,9 @@ describe("SyncConnector", () => {
       ).toBe(true);
       expect(platformSync.retrieveDelta).toHaveBeenCalledTimes(2);
       expect(platformSync.finishSync).toHaveBeenCalledWith("sync-123");
-      },
-      15000
-    );
+    }, 15000);
 
-    it(
-      "prefers batch update when both update and batch update are configured",
-      async () => {
+    it("prefers batch update when both update and batch update are configured", async () => {
       process.env.NODE_ENV = "development";
 
       const setContextMock = vi.fn();
@@ -1496,13 +1500,9 @@ describe("SyncConnector", () => {
       ).toBe(true);
       expect(platformSync.retrieveDelta).toHaveBeenCalledTimes(2);
       expect(platformSync.finishSync).toHaveBeenCalledWith("sync-456");
-      },
-      15000
-    );
+    }, 15000);
 
-    it(
-      "prefers batch delete when both delete and batch delete are configured",
-      async () => {
+    it("prefers batch delete when both delete and batch delete are configured", async () => {
       process.env.NODE_ENV = "development";
 
       const setContextMock = vi.fn();
@@ -1677,9 +1677,7 @@ describe("SyncConnector", () => {
       ).toBe(true);
       expect(platformSync.retrieveDelta).toHaveBeenCalledTimes(2);
       expect(platformSync.finishSync).toHaveBeenCalledWith("sync-789");
-      },
-      15000
-    );
+    }, 15000);
   });
 
   describe("Async Writes", () => {
@@ -1712,20 +1710,19 @@ describe("SyncConnector", () => {
           httpRequests: [],
           pendingWritesCount: 0,
         });
-      retrieveDeltaMock = vi.spyOn(platformSync, "retrieveDelta")
+      retrieveDeltaMock = vi
+        .spyOn(platformSync, "retrieveDelta")
         .mockResolvedValue({ operation: "CREATE", changes: [] });
       startSyncMock = vi
         .spyOn(platformSync, "startSync")
         .mockResolvedValue({ id: "sync-789", type: "FULL" });
-      getSyncMock = vi
-        .spyOn(platformSync, "getSync")
-        .mockResolvedValue({
-          id: "sync-123",
-          currentDirection: null,
-          requestedDirection: "bidirectional",
-          type: "FULL",
-          modelStatuses: {},
-        } as any);
+      getSyncMock = vi.spyOn(platformSync, "getSync").mockResolvedValue({
+        id: "sync-123",
+        currentDirection: null,
+        requestedDirection: "bidirectional",
+        type: "FULL",
+        modelStatuses: {},
+      } as any);
       updateSyncMock = vi
         .spyOn(platformSync, "updateSync")
         .mockResolvedValue({});
@@ -1742,7 +1739,7 @@ describe("SyncConnector", () => {
       // Mock batch HTTP request
       batchHttpRequestMock = vi.fn();
       mockRestConnector.batchRequest = batchHttpRequestMock;
-      
+
       // Mock upsertObjectBatch for PULL phase
       vi.spyOn(platformSync, "upsertObjectBatch").mockResolvedValue(
         undefined as any
@@ -1889,6 +1886,5 @@ describe("SyncConnector", () => {
       // Verify that syncWithAsyncWrites was called
       expect(syncWithAsyncWritesSpy).toHaveBeenCalledWith("FULL");
     });
-
   });
 });

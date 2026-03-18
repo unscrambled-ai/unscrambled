@@ -21,22 +21,27 @@ export default async function createDeploy(
 
   let response;
 
-  console.info(`Creating deploy to ${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`);
+  console.info(
+    `Creating deploy to ${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`
+  );
   console.info(`Compiled code size: ${compiledCode.length} bytes`);
 
   try {
-    response = await fetch(`${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        status,
-        startedAt: "now",
-        compiledCode,
-      }),
-    });
+    response = await fetch(
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status,
+          startedAt: "now",
+          compiledCode,
+        }),
+      }
+    );
   } catch (error) {
     console.error("Exception thrown ", error);
     throw error;

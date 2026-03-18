@@ -221,7 +221,9 @@ export class IntegrationBuilder {
       firstArg &&
       !Array.isArray(firstArg) &&
       typeof firstArg === "object" &&
-      ("incremental" in firstArg || "full" in firstArg || "baseline" in firstArg)
+      ("incremental" in firstArg ||
+        "full" in firstArg ||
+        "baseline" in firstArg)
     ) {
       const scheduleObj = firstArg as {
         incremental?: { every?: number | string };

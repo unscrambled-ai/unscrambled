@@ -45,7 +45,9 @@ trigger
     try {
       environment = env ?? getEnvName();
     } catch (error) {
-      terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+      terminal.red(
+        `${error instanceof Error ? error.message : String(error)}\n`
+      );
       process.exitCode = 1;
       return;
     }

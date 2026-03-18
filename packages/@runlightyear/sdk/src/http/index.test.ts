@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { httpRequest, HttpProxyResponseError, isHttpProxyResponseError } from "./index";
+import {
+  httpRequest,
+  HttpProxyResponseError,
+  isHttpProxyResponseError,
+} from "./index";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -300,7 +304,9 @@ describe("httpRequest", () => {
 
         // The error response should contain the ORIGINAL sensitive data
         // so that callers can process it if needed
-        expect(httpError.response.data.access_token).toBe("secret_token_abc123");
+        expect(httpError.response.data.access_token).toBe(
+          "secret_token_abc123"
+        );
         expect(httpError.response.data.refresh_token).toBe(
           "secret_refresh_xyz789"
         );

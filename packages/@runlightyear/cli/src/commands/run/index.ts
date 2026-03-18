@@ -5,7 +5,10 @@ import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import { getEnvName } from "../../shared/getEnvName";
-import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
+import {
+  checkResponseOk,
+  parseJsonResponse,
+} from "../../shared/parseJsonResponse";
 
 type OutputFormat = "text" | "json";
 
@@ -28,11 +31,22 @@ export const runs = new Command("runs").description(
 runs
   .command("list")
   .description("List recent runs")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("-a, --action <name>", "Filter by action name"))
   .addOption(new Option("--sync <syncId>", "Filter by sync ID"))
-  .addOption(new Option("--status <status>", "Filter by status (QUEUED, RUNNING, SUCCEEDED, FAILED, SKIPPED, CANCELED)"))
-  .addOption(new Option("-l, --limit <count>", "Max number of runs to return").default("20"))
+  .addOption(
+    new Option(
+      "--status <status>",
+      "Filter by status (QUEUED, RUNNING, SUCCEEDED, FAILED, SKIPPED, CANCELED)"
+    )
+  )
+  .addOption(
+    new Option("-l, --limit <count>", "Max number of runs to return").default(
+      "20"
+    )
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -54,7 +68,9 @@ runs
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -79,10 +95,14 @@ runs
 
         if (!response.ok) {
           checkResponseOk(response, "List runs");
-          throw new Error(`List runs failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `List runs failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const result = await parseJsonResponse(response, { operationName: "list runs" });
+        const result = await parseJsonResponse(response, {
+          operationName: "list runs",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -97,22 +117,29 @@ runs
           const limit = parseInt(options.limit, 10);
           for (const r of runs.slice(0, limit)) {
             const statusColor =
-              r.status === "SUCCEEDED" ? terminal.green :
-              r.status === "FAILED" ? terminal.red :
-              r.status === "RUNNING" ? terminal.cyan :
-              r.status === "CANCELED" || r.status === "SKIPPED" ? terminal.yellow :
-              terminal;
+              r.status === "SUCCEEDED"
+                ? terminal.green
+                : r.status === "FAILED"
+                ? terminal.red
+                : r.status === "RUNNING"
+                ? terminal.cyan
+                : r.status === "CANCELED" || r.status === "SKIPPED"
+                ? terminal.yellow
+                : terminal;
 
             terminal.bold(`${r.id}`);
             terminal(` ${r.action?.name || "?"} `);
             statusColor(`${r.status}`);
             if (r.managedUser) {
-              terminal.gray(` (${r.managedUser.displayName || r.managedUser.externalId})`);
+              terminal.gray(
+                ` (${r.managedUser.displayName || r.managedUser.externalId})`
+              );
             }
             terminal("\n");
             terminal.gray(`  created: ${r.createdAt}`);
             if (r.endedAt) {
-              const duration = new Date(r.endedAt).getTime() - new Date(r.createdAt).getTime();
+              const duration =
+                new Date(r.endedAt).getTime() - new Date(r.createdAt).getTime();
               terminal.gray(` duration: ${(duration / 1000).toFixed(1)}s`);
             }
             terminal("\n");
@@ -122,13 +149,17 @@ runs
             terminal("\n");
           }
 
-          terminal(`Showing ${Math.min(runs.length, limit)} of ${runs.length} runs\n`);
+          terminal(
+            `Showing ${Math.min(runs.length, limit)} of ${runs.length} runs\n`
+          );
           if (result.cursor) {
             terminal.gray(`(more available)\n`);
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -139,13 +170,39 @@ runs
   .command("logs")
   .description("Get logs for a specific run")
   .argument("<runId>", "Run ID")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
-  .addOption(new Option("--level <level>", "Filter by log level (DEBUG, INFO, WARN, ERROR)"))
-  .addOption(new Option("-l, --limit <count>", "Max logs to return").default("500"))
-  .addOption(new Option("-s, --search <pattern>", "Search indexed logs containing pattern (excludes very recent logs)"))
-  .addOption(new Option("--after <timestamp>", "Show logs after this timestamp (ISO 8601 or HH:MM:SS)"))
-  .addOption(new Option("--before <timestamp>", "Show logs before this timestamp (ISO 8601 or HH:MM:SS)"))
-  .addOption(new Option("-t, --tail", "Show most recent logs first (descending order)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
+  .addOption(
+    new Option(
+      "--level <level>",
+      "Filter by log level (DEBUG, INFO, WARN, ERROR)"
+    )
+  )
+  .addOption(
+    new Option("-l, --limit <count>", "Max logs to return").default("500")
+  )
+  .addOption(
+    new Option(
+      "-s, --search <pattern>",
+      "Search indexed logs containing pattern (excludes very recent logs)"
+    )
+  )
+  .addOption(
+    new Option(
+      "--after <timestamp>",
+      "Show logs after this timestamp (ISO 8601 or HH:MM:SS)"
+    )
+  )
+  .addOption(
+    new Option(
+      "--before <timestamp>",
+      "Show logs before this timestamp (ISO 8601 or HH:MM:SS)"
+    )
+  )
+  .addOption(
+    new Option("-t, --tail", "Show most recent logs first (descending order)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -172,7 +229,9 @@ runs
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -183,7 +242,7 @@ runs
 
         // Build query params
         const params = new URLSearchParams();
-        
+
         // When search is specified, use search mode (queries OpenSearch directly)
         // Otherwise use default live mode (Redis first, then OpenSearch)
         if (options.search) {
@@ -192,11 +251,11 @@ runs
           // Note: search mode only queries indexed logs (OpenSearch)
           // Very recent logs (< ~2 min) may not appear in search results
         }
-        
+
         if (options.after) {
           // Support both ISO 8601 and HH:MM:SS formats
-          const afterTs = options.after.includes("T") 
-            ? options.after 
+          const afterTs = options.after.includes("T")
+            ? options.after
             : `${new Date().toISOString().split("T")[0]}T${options.after}Z`;
           params.set("fromTimestamp", afterTs);
         }
@@ -216,7 +275,9 @@ runs
 
         const queryString = params.toString();
         const response = await fetch(
-          `${baseUrl}/api/v1/projects/default/envs/${envName}/logs/run/${runId}${queryString ? `?${queryString}` : ""}`,
+          `${baseUrl}/api/v1/projects/default/envs/${envName}/logs/run/${runId}${
+            queryString ? `?${queryString}` : ""
+          }`,
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -231,10 +292,14 @@ runs
             return;
           }
           checkResponseOk(response, "Get run logs");
-          throw new Error(`Get run logs failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `Get run logs failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const result = await parseJsonResponse(response, { operationName: "get run logs" });
+        const result = await parseJsonResponse(response, {
+          operationName: "get run logs",
+        });
 
         let logs = result.data?.logs ?? result.logs ?? [];
         const totalCount = result.data?.pagination?.totalCount ?? logs.length;
@@ -251,7 +316,9 @@ runs
         const filteredLogs = logs;
 
         if (options.output === "json") {
-          process.stdout.write(`${JSON.stringify({ logs: filteredLogs, totalCount }, null, 2)}\n`);
+          process.stdout.write(
+            `${JSON.stringify({ logs: filteredLogs, totalCount }, null, 2)}\n`
+          );
         } else {
           if (filteredLogs.length === 0) {
             terminal("No logs found\n");
@@ -261,22 +328,31 @@ runs
           terminal.bold(`Logs for run ${runId}:\n\n`);
 
           for (const log of filteredLogs) {
-            const time = new Date(log.timestamp).toISOString().substring(11, 23);
+            const time = new Date(log.timestamp)
+              .toISOString()
+              .substring(11, 23);
             const levelColor =
-              log.level === "ERROR" ? terminal.red :
-              log.level === "WARN" ? terminal.yellow :
-              log.level === "DEBUG" ? terminal.gray :
-              terminal;
+              log.level === "ERROR"
+                ? terminal.red
+                : log.level === "WARN"
+                ? terminal.yellow
+                : log.level === "DEBUG"
+                ? terminal.gray
+                : terminal;
             levelColor(`[${time}] [${log.level.padEnd(5)}] ${log.message}\n`);
           }
 
           terminal(`\nShowing ${filteredLogs.length} of ${totalCount} logs\n`);
           if (options.search) {
-            terminal.gray(`Note: Search queries indexed logs. Very recent logs (< ~2 min) may not appear.\n`);
+            terminal.gray(
+              `Note: Search queries indexed logs. Very recent logs (< ~2 min) may not appear.\n`
+            );
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -287,7 +363,9 @@ runs
   .command("cancel")
   .description("Cancel a running or queued run")
   .argument("<runId>", "Run ID")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(new Option("-f, --force", "Skip confirmation prompt"))
   .action(
     async (
@@ -300,7 +378,9 @@ runs
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -326,21 +406,31 @@ runs
             return;
           }
           checkResponseOk(getResponse, "Get run");
-          throw new Error(`Get run failed: HTTP ${getResponse.status} ${getResponse.statusText}`);
+          throw new Error(
+            `Get run failed: HTTP ${getResponse.status} ${getResponse.statusText}`
+          );
         }
 
-        const run = await parseJsonResponse(getResponse, { operationName: "get run" });
+        const run = await parseJsonResponse(getResponse, {
+          operationName: "get run",
+        });
 
         terminal(`Run ${runId}\n`);
         terminal(`Action: ${run.action?.name || "(unknown)"}\n`);
         terminal(`Status: ${run.status}\n`);
         if (run.managedUser) {
-          terminal(`User: ${run.managedUser.displayName || run.managedUser.externalId}\n`);
+          terminal(
+            `User: ${
+              run.managedUser.displayName || run.managedUser.externalId
+            }\n`
+          );
         }
         terminal("\n");
 
         // Check if already in terminal state
-        if (["SUCCEEDED", "FAILED", "CANCELED", "SKIPPED"].includes(run.status)) {
+        if (
+          ["SUCCEEDED", "FAILED", "CANCELED", "SKIPPED"].includes(run.status)
+        ) {
           terminal.yellow(`Run has already ended with status: ${run.status}\n`);
           return;
         }
@@ -375,15 +465,21 @@ runs
         );
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({})) as { message?: string };
-          terminal.red(`Cancel failed: ${errorData.message || response.statusText}\n`);
+          const errorData = (await response.json().catch(() => ({}))) as {
+            message?: string;
+          };
+          terminal.red(
+            `Cancel failed: ${errorData.message || response.statusText}\n`
+          );
           process.exitCode = 1;
           return;
         }
 
         terminal.green("Run canceled successfully.\n");
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -394,7 +490,9 @@ runs
   .command("analyze")
   .description("Analyze run transitions for a sync")
   .argument("<syncId>", "Sync ID to analyze")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -411,7 +509,9 @@ runs
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -434,12 +534,17 @@ runs
 
         if (!response.ok) {
           checkResponseOk(response, "List runs");
-          throw new Error(`List runs failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `List runs failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const result = await parseJsonResponse(response, { operationName: "list runs" });
+        const result = await parseJsonResponse(response, {
+          operationName: "list runs",
+        });
         const runs = (result.runs ?? []).sort(
-          (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          (a: any, b: any) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
 
         if (runs.length === 0) {
@@ -460,7 +565,9 @@ runs
           const curr = runs[i];
           const next = runs[i + 1];
           if (curr.endedAt && next.startedAt) {
-            const gapMs = new Date(next.startedAt).getTime() - new Date(curr.endedAt).getTime();
+            const gapMs =
+              new Date(next.startedAt).getTime() -
+              new Date(curr.endedAt).getTime();
             transitions.push({
               fromRun: i,
               toRun: i + 1,
@@ -483,18 +590,25 @@ runs
                   createdAt: r.createdAt,
                   startedAt: r.startedAt,
                   endedAt: r.endedAt,
-                  durationMs: r.endedAt && r.startedAt
-                    ? new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()
-                    : null,
+                  durationMs:
+                    r.endedAt && r.startedAt
+                      ? new Date(r.endedAt).getTime() -
+                        new Date(r.startedAt).getTime()
+                      : null,
                 })),
                 transitions,
                 summary: {
                   totalRuns: runs.length,
                   totalGapMs: transitions.reduce((sum, t) => sum + t.gapMs, 0),
-                  avgGapMs: transitions.length > 0
-                    ? transitions.reduce((sum, t) => sum + t.gapMs, 0) / transitions.length
-                    : 0,
-                  maxGapMs: transitions.length > 0 ? Math.max(...transitions.map(t => t.gapMs)) : 0,
+                  avgGapMs:
+                    transitions.length > 0
+                      ? transitions.reduce((sum, t) => sum + t.gapMs, 0) /
+                        transitions.length
+                      : 0,
+                  maxGapMs:
+                    transitions.length > 0
+                      ? Math.max(...transitions.map((t) => t.gapMs))
+                      : 0,
                 },
               },
               null,
@@ -507,16 +621,21 @@ runs
           terminal.bold("Runs:\n");
           for (let i = 0; i < runs.length; i++) {
             const r = runs[i];
-            const duration = r.endedAt && r.startedAt
-              ? (new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()) / 1000
-              : null;
+            const duration =
+              r.endedAt && r.startedAt
+                ? (new Date(r.endedAt).getTime() -
+                    new Date(r.startedAt).getTime()) /
+                  1000
+                : null;
             terminal(`  #${i}: ${r.id.substring(0, 13)}...`);
             terminal(` ${r.status}`);
             if (duration !== null) {
               terminal(` (${duration.toFixed(1)}s)`);
             }
             terminal("\n");
-            terminal.gray(`      started: ${r.startedAt?.substring(11, 23) || "?"}`);
+            terminal.gray(
+              `      started: ${r.startedAt?.substring(11, 23) || "?"}`
+            );
             terminal.gray(` ended: ${r.endedAt?.substring(11, 23) || "?"}\n`);
           }
 
@@ -536,9 +655,14 @@ runs
 
           terminal("\n");
           terminal.bold("Summary:\n");
-          const totalGapSec = transitions.reduce((sum, t) => sum + t.gapMs, 0) / 1000;
-          const avgGapSec = transitions.length > 0 ? totalGapSec / transitions.length : 0;
-          const maxGapSec = transitions.length > 0 ? Math.max(...transitions.map(t => t.gapMs)) / 1000 : 0;
+          const totalGapSec =
+            transitions.reduce((sum, t) => sum + t.gapMs, 0) / 1000;
+          const avgGapSec =
+            transitions.length > 0 ? totalGapSec / transitions.length : 0;
+          const maxGapSec =
+            transitions.length > 0
+              ? Math.max(...transitions.map((t) => t.gapMs)) / 1000
+              : 0;
           terminal(`  Total runs: ${runs.length}\n`);
           terminal(`  Total gap time: ${totalGapSec.toFixed(2)}s\n`);
           terminal(`  Avg gap: ${avgGapSec.toFixed(2)}s\n`);
@@ -550,7 +674,9 @@ runs
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }
@@ -561,7 +687,9 @@ runs
   .command("get")
   .description("Get details for a specific run")
   .argument("<runId>", "Run ID")
-  .addOption(new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)"))
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
   .addOption(
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
@@ -578,7 +706,9 @@ runs
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
         return;
       }
@@ -603,22 +733,31 @@ runs
             return;
           }
           checkResponseOk(response, "Get run");
-          throw new Error(`Get run failed: HTTP ${response.status} ${response.statusText}`);
+          throw new Error(
+            `Get run failed: HTTP ${response.status} ${response.statusText}`
+          );
         }
 
-        const r = await parseJsonResponse(response, { operationName: "get run" });
+        const r = await parseJsonResponse(response, {
+          operationName: "get run",
+        });
 
         if (options.output === "json") {
           process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
         } else {
           const statusColor =
-            r.status === "SUCCEEDED" ? terminal.green :
-            r.status === "FAILED" ? terminal.red :
-            r.status === "RUNNING" ? terminal.cyan :
-            terminal;
+            r.status === "SUCCEEDED"
+              ? terminal.green
+              : r.status === "FAILED"
+              ? terminal.red
+              : r.status === "RUNNING"
+              ? terminal.cyan
+              : terminal;
 
           terminal.bold(`Run: ${r.id}\n\n`);
-          terminal(`Action: ${r.action?.name || "?"} (${r.action?.title || "?"})\n`);
+          terminal(
+            `Action: ${r.action?.name || "?"} (${r.action?.title || "?"})\n`
+          );
           terminal(`Status: `);
           statusColor(`${r.status}\n`);
           terminal(`Created: ${r.createdAt}\n`);
@@ -627,12 +766,16 @@ runs
 
           if (r.managedUser) {
             terminal(`\nManaged User:\n`);
-            terminal(`  ${r.managedUser.displayName || r.managedUser.externalId}\n`);
+            terminal(
+              `  ${r.managedUser.displayName || r.managedUser.externalId}\n`
+            );
             terminal.gray(`  ID: ${r.managedUser.id}\n`);
           }
 
           if (r.integration) {
-            terminal(`\nIntegration: ${r.integration.name} (${r.integration.title})\n`);
+            terminal(
+              `\nIntegration: ${r.integration.name} (${r.integration.title})\n`
+            );
           }
 
           if (r.apps && r.apps.length > 0) {
@@ -640,7 +783,11 @@ runs
           }
 
           if (r.customApps && r.customApps.length > 0) {
-            terminal(`Custom Apps: ${r.customApps.map((a: any) => a.name).join(", ")}\n`);
+            terminal(
+              `Custom Apps: ${r.customApps
+                .map((a: any) => a.name)
+                .join(", ")}\n`
+            );
           }
 
           if (r.syncRunNumber !== null && r.syncRunNumber !== undefined) {
@@ -648,7 +795,9 @@ runs
           }
         }
       } catch (error) {
-        terminal.red(`${error instanceof Error ? error.message : String(error)}\n`);
+        terminal.red(
+          `${error instanceof Error ? error.message : String(error)}\n`
+        );
         process.exitCode = 1;
       }
     }

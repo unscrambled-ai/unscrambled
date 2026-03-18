@@ -324,7 +324,9 @@ export const httpRequest: HttpRequest = async (props) => {
           categorizeHttpStatus(response.status) === "temporary";
 
         if (isRetriableHttpStatus) {
-          console.warn(`<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy] - retrying...`);
+          console.warn(
+            `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy] - retrying...`
+          );
           backoffCount += 1;
           if (backoffCount > maxBackoffs) {
             throw new HttpProxyResponseError({
@@ -340,7 +342,9 @@ export const httpRequest: HttpRequest = async (props) => {
 
         // Non-retriable HTTP error → surface as HttpProxyResponseError so callers
         // can handle uniformly and we do not retry in our catch block below.
-        console.error(`<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy]`);
+        console.error(
+          `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy]`
+        );
         console.error("Response:", errorText);
         throw new HttpProxyResponseError({
           status: response.status,
@@ -354,7 +358,9 @@ export const httpRequest: HttpRequest = async (props) => {
 
       if (categorizeHttpStatus(proxyResponse.status) === "temporary") {
         const elapsed = Date.now() - requestStartTime;
-        console.warn(`<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms) - retrying...`);
+        console.warn(
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms) - retrying...`
+        );
         backoffCount += 1;
         if (backoffCount > maxBackoffs) {
           throw new HttpProxyResponseError(proxyResponse);
@@ -364,7 +370,7 @@ export const httpRequest: HttpRequest = async (props) => {
       } else if (proxyResponse.status < 200 || proxyResponse.status >= 300) {
         const elapsed = Date.now() - requestStartTime;
         console.error(
-          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`,
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`
         );
 
         const dataForLogging =
@@ -377,7 +383,7 @@ export const httpRequest: HttpRequest = async (props) => {
                 ...Object.fromEntries(
                   redactKeys
                     .filter((key) => key in (proxyResponse.data as any))
-                    .map((key) => [key, "[REDACTED]"]),
+                    .map((key) => [key, "[REDACTED]"])
                 ),
               }
             : proxyResponse.data;
@@ -386,7 +392,9 @@ export const httpRequest: HttpRequest = async (props) => {
         throw new HttpProxyResponseError(proxyResponse);
       } else {
         const elapsed = Date.now() - requestStartTime;
-        console.debug(`<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`);
+        console.debug(
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`
+        );
       }
 
       return proxyResponse;
