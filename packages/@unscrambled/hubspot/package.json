@@ -13,10 +13,13 @@
     "docs:extract": "api-extractor run --local --verbose"
   },
   "dependencies": {
-    "@unscrambled/sdk": "*",
     "zod": "^4.0.17"
   },
+  "peerDependencies": {
+    "@unscrambled/sdk": "^0.1.0"
+  },
   "devDependencies": {
+    "@unscrambled/sdk": "workspace:*",
     "@microsoft/api-extractor": "^7.38.5",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.24",
