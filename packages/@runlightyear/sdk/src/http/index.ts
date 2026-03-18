@@ -118,6 +118,7 @@ async function exponentialBackoffWithJitter(retryCount: number): Promise<void> {
 // Get the current context values from log context
 function getCurrentRunContext(): {
   runId?: string;
+  authorizerActivityId?: string;
   syncId?: string;
   modelName?: string;
   integrationName?: string;
@@ -128,6 +129,7 @@ function getCurrentRunContext(): {
   const ctx = getCurrentContext();
   return {
     runId: ctx.runId,
+    authorizerActivityId: ctx.authorizerActivityId,
     syncId: (ctx as any).syncId,
     modelName: (ctx as any).modelName,
     integrationName: (ctx as any).integrationName,
@@ -174,6 +176,7 @@ export const httpRequest: HttpRequest = async (props) => {
   // Get the current run and execution context
   const {
     runId,
+    authorizerActivityId,
     syncId,
     modelName,
     integrationName,
@@ -273,6 +276,11 @@ export const httpRequest: HttpRequest = async (props) => {
         body: finalBody,
         runId,
       };
+
+      // Add authorizerActivityId if present
+      if (authorizerActivityId) {
+        requestBody.authorizerActivityId = authorizerActivityId;
+      }
 
       // Add syncInfo if present
       if (syncInfo) {

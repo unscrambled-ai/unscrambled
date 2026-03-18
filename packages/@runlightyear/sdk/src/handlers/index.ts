@@ -222,6 +222,14 @@ export const handler: DirectHandler = async (
           environment: getAuthData.environment,
         });
 
+        // Set authorizerActivityId in log context if provided
+        if (getAuthData.authorizerActivityId) {
+          console.log(
+            `🔗 Setting authorizerActivityId in log context: ${getAuthData.authorizerActivityId}`
+          );
+          setLogContext({ authorizerActivityId: getAuthData.authorizerActivityId });
+        }
+
         // Set environment variables for OAuth handler to use
         if (getAuthData.apiKey) {
           process.env.LIGHTYEAR_API_KEY = getAuthData.apiKey;
@@ -268,6 +276,14 @@ export const handler: DirectHandler = async (
           baseUrl: requestTokenData.baseUrl,
           environment: requestTokenData.environment,
         });
+
+        // Set authorizerActivityId in log context if provided
+        if (requestTokenData.authorizerActivityId) {
+          console.log(
+            `🔗 Setting authorizerActivityId in log context: ${requestTokenData.authorizerActivityId}`
+          );
+          setLogContext({ authorizerActivityId: requestTokenData.authorizerActivityId });
+        }
 
         // Set environment variables for OAuth handler to use
         if (requestTokenData.apiKey) {
@@ -316,6 +332,14 @@ export const handler: DirectHandler = async (
           baseUrl: refreshTokenData.baseUrl,
           environment: refreshTokenData.environment,
         });
+
+        // Set authorizerActivityId in log context if provided
+        if (refreshTokenData.authorizerActivityId) {
+          console.log(
+            `🔗 Setting authorizerActivityId in log context: ${refreshTokenData.authorizerActivityId}`
+          );
+          setLogContext({ authorizerActivityId: refreshTokenData.authorizerActivityId });
+        }
 
         // Set environment variables for OAuth handler to use
         if (refreshTokenData.apiKey) {
