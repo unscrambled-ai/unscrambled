@@ -1,6 +1,6 @@
-# Lightyear Deploy Request Schema
+# Unscrambled Deploy Request Schema
 
-This document describes the expected schema for deployment requests to the Lightyear platform API.
+This document describes the expected schema for deployment requests to the Unscrambled platform API.
 
 ## Overview
 

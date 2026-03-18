@@ -18,8 +18,8 @@ export default function getRequestHandler(baseUrl: string) {
       program.error("Failed to find code in url");
     }
 
-    const { LIGHTYEAR_API_KEY } = await fetchApiKey(baseUrl, code, res);
-    await writeConfigFile({ LIGHTYEAR_API_KEY, baseUrl }, res);
+    const { UNSCRAMBLED_API_KEY } = await fetchApiKey(baseUrl, code, res);
+    await writeConfigFile({ UNSCRAMBLED_API_KEY, baseUrl }, res);
 
     process.exit(0);
   };

@@ -1,5 +1,5 @@
 /**
- * Utility functions for making API requests to Lightyear platform
+ * Utility functions for making API requests to Unscrambled platform
  */
 
 export interface AuthData {
@@ -56,18 +56,18 @@ export function getEnvName(): string {
  * Get base URL from process.env
  */
 export function getBaseUrl(): string {
-  return process.env.BASE_URL || "https://app.runlightyear.com";
+  return process.env.BASE_URL || "https://app.unscrambled.ai";
 }
 
 /**
  * Get API key from process.env
  */
 export function getApiKey(): string | undefined {
-  return process.env.LIGHTYEAR_API_KEY || process.env.API_KEY;
+  return process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
 }
 
 /**
- * Make authenticated API request to Lightyear platform
+ * Make authenticated API request to Unscrambled platform
  */
 export async function makeApiRequest(
   uri: string,
@@ -88,7 +88,7 @@ export async function makeApiRequest(
 
   if (!apiKey) {
     throw new Error(
-      "Missing API key. Set LIGHTYEAR_API_KEY or API_KEY environment variable."
+      "Missing API key. Set UNSCRAMBLED_API_KEY or API_KEY environment variable."
     );
   }
 
@@ -188,10 +188,10 @@ export async function makeApiRequest(
 }
 
 /**
- * Get OAuth configuration data for a custom app from Lightyear platform
+ * Get OAuth configuration data for a custom app from Unscrambled platform
  */
 export async function getAuthData(props: GetAuthDataProps): Promise<AuthData> {
-  console.debug("Getting auth data from Lightyear platform");
+  console.debug("Getting auth data from Unscrambled platform");
 
   const { customAppName, authName } = props;
   const envName = getEnvName();
@@ -217,12 +217,12 @@ export async function getAuthData(props: GetAuthDataProps): Promise<AuthData> {
 }
 
 /**
- * Update OAuth auth data for a custom app in Lightyear platform
+ * Update OAuth auth data for a custom app in Unscrambled platform
  */
 export async function updateAuthData(
   props: UpdateAuthDataProps
 ): Promise<void> {
-  console.debug("Updating auth data in Lightyear platform");
+  console.debug("Updating auth data in Unscrambled platform");
 
   const { appName, customAppName, authName, authData } = props;
 

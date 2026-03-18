@@ -173,16 +173,16 @@ class LogCapture {
       baseUrl:
         config.baseUrl ||
         process.env.BASE_URL ||
-        process.env.LIGHTYEAR_BASE_URL ||
-        "https://app.runlightyear.com",
+        process.env.UNSCRAMBLED_BASE_URL ||
+        "https://app.unscrambled.ai",
       environment:
         config.environment ||
         process.env.ENV_NAME ||
-        process.env.LIGHTYEAR_ENV ||
+        process.env.UNSCRAMBLED_ENV ||
         "dev",
       apiKey:
         config.apiKey ||
-        process.env.LIGHTYEAR_API_KEY ||
+        process.env.UNSCRAMBLED_API_KEY ||
         process.env.API_KEY ||
         "",
     };

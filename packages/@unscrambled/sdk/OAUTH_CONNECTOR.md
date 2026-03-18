@@ -1,6 +1,6 @@
 # OAuth Connector for SDK
 
-This document describes the OAuth connector implementation for the Lightyear SDK, which provides OAuth2 authentication functionality that integrates with the existing CLI operations.
+This document describes the OAuth connector implementation for the Unscrambled SDK, which provides OAuth2 authentication functionality that integrates with the existing CLI operations.
 
 ## Overview
 

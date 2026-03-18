@@ -60,7 +60,7 @@ const customCrmIntegration = defineIntegration()
   })
   .build();
 
-// Future-proof: If Lightyear releases a 'custom_crm' built-in app later,
+// Future-proof: If Unscrambled releases a 'custom_crm' built-in app later,
 // existing integrations using withCustomApp won't break
 const futureBuiltIn = defineIntegration()
   .withApp('custom_crm') // Would use the new built-in app

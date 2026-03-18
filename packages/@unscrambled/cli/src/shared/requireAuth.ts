@@ -13,8 +13,8 @@ export function requireAuth(): void {
     terminal.red("\n❌ Authentication required\n\n");
     terminal("You need to log in or sign up before using this command.\n\n");
     terminal.bold("To get started, run one of the following commands:\n");
-    terminal.green("  lightyear login\n");
-    terminal.green("  lightyear signup\n\n");
+    terminal.green("  un login\n");
+    terminal.green("  un signup\n\n");
 
     program.error("", { exitCode: 1 });
   }

@@ -27,8 +27,8 @@ dotenv.config();
 prepareConsole();
 
 program
-  .name("lightyear")
-  .description("Lightyear CLI")
+  .name("un")
+  .description("Unscrambled CLI")
   .version(packageJson.version)
   .addCommand(create)
   .addCommand(signup)

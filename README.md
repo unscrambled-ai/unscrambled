@@ -1,6 +1,6 @@
-# Lightyear
+# Unscrambled
 
-Lightyear helps you to write powerful integrations in a few lines of code. With built-in authentications and serverless infrastructure, we help you take the complexity out of API automation.
+Unscrambled helps you to write powerful integrations in a few lines of code. With built-in authentications and serverless infrastructure, we help you take the complexity out of API automation.
 
 ## System Requirements
 
@@ -14,7 +14,7 @@ Lightyear helps you to write powerful integrations in a few lines of code. With 
 Create your project directory from our template.
 
 ```shell
-npx @unscrambled/cli create lightyear-integrations
+npx @unscrambled/cli create unscrambled-integrations
 ```
 
 ### Install dependencies
@@ -28,13 +28,13 @@ npm install
 ### Authenticate
 
 ```shell
-npx lightyear signup
+npx un signup
 ```
 
-or if you already have a Lightyear account
+or if you already have an Unscrambled account
 
 ```shell
-npx lightyear login
+npx un login
 ```
 
 ### Run the development server
@@ -45,7 +45,7 @@ npm run dev
 
 ### Access the dashboard
 
-https://app.runlightyear.com
+https://app.unscrambled.ai
 
 ### Deploy to production
 
@@ -55,5 +55,5 @@ npm run deploy
 
 ## Documentation
 
-https://docs.runlightyear.com
+https://docs.unscrambled.ai
 

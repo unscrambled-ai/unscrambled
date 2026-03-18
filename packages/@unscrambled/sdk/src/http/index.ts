@@ -158,18 +158,18 @@ export interface BatchHttpRequest {
   (props: BatchHttpProxyRequestProps): Promise<BatchHttpProxyResponse>;
 }
 
-// HTTP implementation for SDK that uses the Lightyear proxy infrastructure
+// HTTP implementation for SDK that uses the Unscrambled proxy infrastructure
 export const httpRequest: HttpRequest = async (props) => {
   const { redactKeys, maxRetries = 3, ...rest } = props;
 
   // Get environment variables
   const envName = process.env.ENV_NAME || "dev";
-  const baseUrl = process.env.BASE_URL || "https://app.runlightyear.com";
-  const apiKey = process.env.LIGHTYEAR_API_KEY || process.env.API_KEY;
+  const baseUrl = process.env.BASE_URL || "https://app.unscrambled.ai";
+  const apiKey = process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      "Missing API key. Set LIGHTYEAR_API_KEY or API_KEY environment variable."
+      "Missing API key. Set UNSCRAMBLED_API_KEY or API_KEY environment variable."
     );
   }
 
@@ -189,7 +189,7 @@ export const httpRequest: HttpRequest = async (props) => {
 
   do {
     try {
-      // Use the same proxy endpoint as the lightyear package
+      // Use the same proxy endpoint as the legacy package
       const proxyUrl = `${baseUrl}/api/v1/projects/default/envs/${envName}/http-request`;
 
       // Normalize json/data/body for proxy: prefer explicit body, then json, then data
@@ -429,12 +429,12 @@ export const httpRequest: HttpRequest = async (props) => {
 export const batchHttpRequest: BatchHttpRequest = async (props) => {
   // Get environment variables
   const envName = process.env.ENV_NAME || "dev";
-  const baseUrl = process.env.BASE_URL || "https://app.runlightyear.com";
-  const apiKey = process.env.LIGHTYEAR_API_KEY || process.env.API_KEY;
+  const baseUrl = process.env.BASE_URL || "https://app.unscrambled.ai";
+  const apiKey = process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      "Missing API key. Set LIGHTYEAR_API_KEY or API_KEY environment variable."
+      "Missing API key. Set UNSCRAMBLED_API_KEY or API_KEY environment variable."
     );
   }
 

@@ -126,7 +126,7 @@ export abstract class OAuthConnector {
 
     if (!clientId || !clientSecret) {
       console.error(
-        `Custom app ${this.customAppName} is missing client id and/or client secret. Configure at https://app.runlightyear.com/envs/<envName>/custom-apps/${this.customAppName}`
+        `Custom app ${this.customAppName} is missing client id and/or client secret. Configure at https://app.unscrambled.ai/envs/<envName>/custom-apps/${this.customAppName}`
       );
       throw new Error("Custom app client id and/or client secret not set");
     }
@@ -237,7 +237,7 @@ export abstract class OAuthConnector {
         ? "-local"
         : "";
 
-    return `https://app.runlightyear.com/oauth2/callback${suffix}`;
+    return `https://app.unscrambled.ai/oauth2/callback${suffix}`;
   }
 
   getRequestAccessTokenHeaders(): OAuthConnectorRequestAccessTokenHeaders {

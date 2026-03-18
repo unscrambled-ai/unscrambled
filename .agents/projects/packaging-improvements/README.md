@@ -1,6 +1,6 @@
 # Packaging Improvements
 
-This directory contains proposals for improving how Lightyear packages are published and distributed.
+This directory contains proposals for improving how Unscrambled packages are published and distributed.
 
 ## Goals
 

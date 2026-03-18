@@ -27,7 +27,7 @@ export default async function runAction({
   const apiKey = getApiKey();
 
   // Set environment variables so SDK code can access them in VM context
-  process.env.LIGHTYEAR_API_KEY = apiKey;
+  process.env.UNSCRAMBLED_API_KEY = apiKey;
   process.env.BASE_URL = baseUrl;
   process.env.ENV_NAME = envName;
 

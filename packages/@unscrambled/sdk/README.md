@@ -1,13 +1,13 @@
-# Lightyear SDK
+# Unscrambled SDK
 
-TypeScript SDK for building integrations with Lightyear.
+TypeScript SDK for building integrations with Unscrambled.
 
 ## Features
 
 - **Builders** - Fluent API for defining integrations, actions, and custom apps
 - **OAuth Connectors** - Built-in OAuth2 authentication with configurable endpoints
 - **Type Safety** - Full TypeScript support with comprehensive type definitions
-- **CLI Integration** - Seamless integration with Lightyear CLI operations
+- **CLI Integration** - Seamless integration with Unscrambled CLI operations
 - **Registry** - Automatic registration and discovery of components
 
 ## Installation
@@ -41,7 +41,7 @@ const googleDriveApp = defineOAuth2CustomApp("google-drive")
   .withOAuthConnector(googleConnector)
   .addVariable("folderName", {
     title: "Default Folder",
-    defaultValue: "Lightyear",
+    defaultValue: "Unscrambled",
   })
   .deploy();
 ```
@@ -131,7 +131,7 @@ const customConnector = defineOAuthConnector("MyAPI")
 
 ## CLI Integration
 
-OAuth connectors automatically work with Lightyear CLI operations:
+OAuth connectors automatically work with Unscrambled CLI operations:
 
 - `execGetAuthRequestUrl` - Generates authorization URLs
 - `execRequestAccessToken` - Exchanges codes for tokens

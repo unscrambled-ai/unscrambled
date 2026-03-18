@@ -3,7 +3,7 @@ import path from "path";
 import os from "os";
 import yaml from "js-yaml";
 
-export interface LightyearConfig {
+export interface UnscrambledConfig {
   apiKey?: string;
   baseUrl?: string;
   envName?: string;
@@ -11,19 +11,19 @@ export interface LightyearConfig {
 
 /**
  * Get the config directory path based on the operating system
- * - macOS/Linux: ~/.lightyear
- * - Windows: %USERPROFILE%/.lightyear
+ * - macOS/Linux: ~/.unscrambled
+ * - Windows: %USERPROFILE%/.unscrambled
  */
 export function getConfigDir(): string {
   const homeDir = os.homedir();
-  return path.join(homeDir, ".lightyear");
+  return path.join(homeDir, ".unscrambled");
 }
 
 /**
  * Get the full path to the config file
  */
 export function getConfigFilePath(): string {
-  return path.join(getConfigDir(), ".lightyear.yaml");
+  return path.join(getConfigDir(), ".unscrambled.yaml");
 }
 
 /**
@@ -40,7 +40,7 @@ export function ensureConfigDir(): void {
  * Read the config file
  * Returns an empty object if the file doesn't exist
  */
-export function readConfig(): LightyearConfig {
+export function readConfig(): UnscrambledConfig {
   const configPath = getConfigFilePath();
 
   if (!fs.existsSync(configPath)) {
@@ -49,7 +49,7 @@ export function readConfig(): LightyearConfig {
 
   try {
     const fileContents = fs.readFileSync(configPath, "utf8");
-    const config = yaml.load(fileContents) as LightyearConfig;
+    const config = yaml.load(fileContents) as UnscrambledConfig;
     return config || {};
   } catch (error) {
     console.error(`Failed to read config file: ${error}`);
@@ -60,7 +60,7 @@ export function readConfig(): LightyearConfig {
 /**
  * Write the config file
  */
-export function writeConfig(config: LightyearConfig): void {
+export function writeConfig(config: UnscrambledConfig): void {
   ensureConfigDir();
   const configPath = getConfigFilePath();
 

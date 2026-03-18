@@ -1,5 +1,5 @@
 /**
- * Custom App types for the Lightyear SDK
+ * Custom App types for the Unscrambled SDK
  */
 
 export type AuthorizationType = 'OAUTH2' | 'APIKEY' | 'BASIC';

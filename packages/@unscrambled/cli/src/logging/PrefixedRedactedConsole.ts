@@ -123,7 +123,7 @@ export class PrefixedRedactedConsole {
     try {
       envName = getEnvName();
     } catch {
-      // Some command flows (notably `lightyear dev`) intentionally set the env later.
+      // Some command flows (notably `un dev`) intentionally set the env later.
       // Logging should never crash the process.
       envName = null;
     }

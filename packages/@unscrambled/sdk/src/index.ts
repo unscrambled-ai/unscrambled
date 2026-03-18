@@ -1,7 +1,7 @@
 /**
  * @unscrambled/sdk
  *
- * TypeScript SDK for building integrations with Lightyear
+ * TypeScript SDK for building integrations with Unscrambled
  */
 
 // Core SDK exports

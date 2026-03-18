@@ -10,7 +10,7 @@ These requirements describe how the `sync` function must behave for a Sync Conne
 ### SDK package differences (what exists today)
 
 - **Builder-pattern connector**: In `packages/@unscrambled/sdk/src/builders/syncConnector.ts`, the SDK exposes a builder that configures per-model operations (`list`, `create`, `update`, `delete`, optional `bulk`). Each operation describes request/response via config, with optional `zod` schema validation and transform functions.
-- **Current SyncConnector API**: `SyncConnector.sync()` has no parameters and currently just iterates configured models and performs a single `list()` call when defined, logging the count. It does not yet implement Lightyear’s `syncId`, direction, progress, pull/push loops, pagination loops, or platform interactions.
+- **Current SyncConnector API**: `SyncConnector.sync()` has no parameters and currently just iterates configured models and performs a single `list()` call when defined, logging the count. It does not yet implement Unscrambled’s `syncId`, direction, progress, pull/push loops, pagination loops, or platform interactions.
 - **List contract in SDK**: `list(params)` returns `{ items: T[]; nextCursor?: string }`. Pagination can be configured via `pagination` (cursor/page/offset) and a `responseSchema` + `transform` can shape typed `items`.
 - **No platform primitives**: The SDK builder does not directly call platform APIs like `getSync`, `updateSync`, `upsertObjectBatch`, `retrieveDelta`, `confirmChange(…)`. These must be integrated by the `sync` orchestrator when running inside the platform context.
 
@@ -107,7 +107,7 @@ SDK config-driven shape (preferred in AI SDK):
   - Return `T` where `id` and `updatedAt` exist directly, or
   - Provide a model-specific mapper inside the `transform` function to produce objects where `id` and `updatedAt` can be read consistently.
 
-Legacy Lightyear-style methods (if used directly):
+Legacy Unscrambled-style methods (if used directly):
 
 - `getNoun()`, `validateListResponse()`, `mapExternalToObject()`, `mapObjectDataToExternalData()` can be emulated via the SDK’s `responseSchema`, `transform`, and `transformRequest` hooks.
 
@@ -141,7 +141,7 @@ Legacy Lightyear-style methods (if used directly):
   - `retrieveDelta({ collectionName, syncId, modelName })` (includes built-in retry/backoff for 423 Locked)
   - `confirmChangeBatch({ syncId, changes, async? })` or `confirmChange({ syncId, changeId, externalId, externalUpdatedAt })`
 
-SDK note: The SDK builder itself does not include these platform calls. The AI SDK `sync` implementation must invoke these platform APIs when running inside Lightyear, using the configured model connector operations to fulfill pulls/pushes.
+SDK note: The SDK builder itself does not include these platform calls. The AI SDK `sync` implementation must invoke these platform APIs when running inside Unscrambled, using the configured model connector operations to fulfill pulls/pushes.
 
 ## Error Handling & Idempotency
 

@@ -1,7 +1,7 @@
 import { BuiltInApp } from './app-types';
 
 /**
- * Built-in apps provided by Lightyear
+ * Built-in apps provided by Unscrambled
  * These are pre-configured and ready to use
  */
 

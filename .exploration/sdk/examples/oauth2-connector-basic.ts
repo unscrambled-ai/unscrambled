@@ -24,7 +24,7 @@ async function demonstrateOAuth2Flow() {
   // Step 1: Generate authorization URL
   const authRequest = basicConnector.buildAuthorizationUrl('random-state-123');
   console.log('Redirect user to:', authRequest.url);
-  // https://api.example.com/oauth/authorize?client_id=my-client-id&redirect_uri=https://platform.lightyear.com/oauth/callback/my_oauth_app&response_type=code&state=random-state-123&scope=read%20write
+  // https://api.example.com/oauth/authorize?client_id=my-client-id&redirect_uri=https://platform.unscrambled.ai/oauth/callback/my_oauth_app&response_type=code&state=random-state-123&scope=read%20write
 
   // Step 2: After user authorizes and we receive the code
   const code = 'auth-code-from-callback';
@@ -49,7 +49,7 @@ const customRedirectConnector = defineOAuth2Connector(myApp)
     'https://api.example.com/oauth/authorize',
     'https://api.example.com/oauth/token'
   )
-  .withRedirectUri('https://mycompany.lightyear.com/oauth/callback')
+  .withRedirectUri('https://mycompany.unscrambled.ai/oauth/callback')
   .build();
 
 // Multiple scopes with custom formatting

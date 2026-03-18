@@ -234,7 +234,7 @@ export const handler: DirectHandler = async (
 
         // Set environment variables for OAuth handler to use
         if (getAuthData.apiKey) {
-          process.env.LIGHTYEAR_API_KEY = getAuthData.apiKey;
+          process.env.UNSCRAMBLED_API_KEY = getAuthData.apiKey;
         }
         if (getAuthData.baseUrl) {
           process.env.BASE_URL = getAuthData.baseUrl;
@@ -291,7 +291,7 @@ export const handler: DirectHandler = async (
 
         // Set environment variables for OAuth handler to use
         if (requestTokenData.apiKey) {
-          process.env.LIGHTYEAR_API_KEY = requestTokenData.apiKey;
+          process.env.UNSCRAMBLED_API_KEY = requestTokenData.apiKey;
         }
         if (requestTokenData.baseUrl) {
           process.env.BASE_URL = requestTokenData.baseUrl;
@@ -349,7 +349,7 @@ export const handler: DirectHandler = async (
 
         // Set environment variables for OAuth handler to use
         if (refreshTokenData.apiKey) {
-          process.env.LIGHTYEAR_API_KEY = refreshTokenData.apiKey;
+          process.env.UNSCRAMBLED_API_KEY = refreshTokenData.apiKey;
         }
         if (refreshTokenData.baseUrl) {
           process.env.BASE_URL = refreshTokenData.baseUrl;
@@ -393,7 +393,7 @@ export const handler: DirectHandler = async (
     }
 
     // Convert internal response to Lambda format
-    // Map "Skipped" and "Rerun" to 202 to align with Lightyear behavior
+    // Map "Skipped" and "Rerun" to 202 to align with Unscrambled behavior
     const isSkipped =
       internalResponse.success &&
       (internalResponse.data?.message === "Skipped" ||
@@ -405,7 +405,7 @@ export const handler: DirectHandler = async (
     const statusCode =
       isSkipped || isRerun ? 202 : internalResponse.success ? 200 : 400;
 
-    // For OAuth operations, format response to match lightyear package format
+    // For OAuth operations, format response to match legacy package format
     // CLI expects { authRequestUrl, message, logs } at top level
     if (
       operation === "getAuthRequestUrl" &&
@@ -444,7 +444,7 @@ export const handler: DirectHandler = async (
       };
     }
 
-    // For OAuth errors, format to match lightyear error format
+    // For OAuth errors, format to match legacy error format
     if (
       (operation === "getAuthRequestUrl" ||
         operation === "requestAccessToken" ||

@@ -1,7 +1,7 @@
 # API Key Storage Migration Summary
 
 ## Overview
-The CLI's API key storage has been moved from `.env` files in the project directory to a user-specific configuration directory at `~/.lightyear/.lightyear.yaml`.
+The CLI's API key storage has been moved from `.env` files in the project directory to a user-specific configuration directory at `~/.unscrambled/.unscrambled.yaml`.
 
 Additionally, all dependencies on the deprecated `@unscrambled/lightyear` package have been removed from the CLI package. The CLI now contains its own implementations of the necessary utilities.
 
@@ -11,13 +11,13 @@ Additionally, all dependencies on the deprecated `@unscrambled/lightyear` packag
 **File**: `packages/@unscrambled/cli/src/shared/configManager.ts`
 - Created utilities for reading/writing YAML configuration files
 - Handles platform-specific paths:
-  - macOS/Linux: `~/.lightyear/.lightyear.yaml`
-  - Windows: `%USERPROFILE%/.lightyear/.lightyear.yaml`
+  - macOS/Linux: `~/.unscrambled/.unscrambled.yaml`
+  - Windows: `%USERPROFILE%/.unscrambled/.unscrambled.yaml`
 - Stores `apiKey` and optionally `baseUrl` (for dev environments)
 
 ### 2. Updated Login/Signup Flow
 **File**: `packages/@unscrambled/cli/src/commands/login/writeConfigFile.ts` (renamed from `writeEnvFile.ts`)
-- Now writes credentials to `~/.lightyear/.lightyear.yaml` instead of `.env`
+- Now writes credentials to `~/.unscrambled/.unscrambled.yaml` instead of `.env`
 - Only stores `baseUrl` when it differs from the default production URL
 
 **File**: `packages/@unscrambled/cli/src/commands/login/getRequestHandler.ts`
@@ -30,7 +30,7 @@ Additionally, all dependencies on the deprecated `@unscrambled/lightyear` packag
 - `packages/@unscrambled/cli/src/shared/getEnvName.ts`
 
 These functions replace imports from the deprecated lightyear package:
-1. First try to read from the config file (`~/.lightyear/.lightyear.yaml`)
+1. First try to read from the config file (`~/.unscrambled/.unscrambled.yaml`)
 2. Fall back to environment variables for backward compatibility
 
 **Updated lightyear package** (for backward compatibility with other packages):
@@ -38,14 +38,14 @@ These functions replace imports from the deprecated lightyear package:
 - `packages/@unscrambled/lightyear/src/util/getBaseUrl.ts`
 
 Both functions updated to:
-1. First try to read from the config file (`~/.lightyear/.lightyear.yaml`)
+1. First try to read from the config file (`~/.unscrambled/.unscrambled.yaml`)
 2. Fall back to environment variables for backward compatibility
 3. Use simple regex parsing to avoid requiring js-yaml in the lightyear package
 
 ### 4. New Authentication Check Utility
 **File**: `packages/@unscrambled/cli/src/shared/requireAuth.ts`
 - Provides a centralized authentication check with user-friendly error messages
-- Guides users to run `lightyear login` or `lightyear signup` if not authenticated
+- Guides users to run `un login` or `un signup` if not authenticated
 
 ### 5. Updated Commands to Check Authentication
 Added `requireAuth()` calls to commands that require authentication:
@@ -57,7 +57,7 @@ Added `requireAuth()` calls to commands that require authentication:
 **File**: `packages/@unscrambled/cli/src/shared/getPusherCredentials.ts`
 - Updated to show user-friendly authentication error message
 
-### 7. Removed Lightyear Package Dependency
+### 7. Removed Legacy Package Dependency
 **Updated**: `packages/@unscrambled/cli/package.json`
 - **Removed**: `@unscrambled/lightyear` dependency
 - **Added**: `js-yaml: ^4.1.0` (runtime dependency)
@@ -79,7 +79,7 @@ Replaced all imports from `@unscrambled/lightyear` throughout the CLI package wi
 
 ## Backward Compatibility
 The implementation maintains backward compatibility:
-- Environment variables (`LIGHTYEAR_API_KEY`, `BASE_URL`) still work if the config file doesn't exist
+- Environment variables (`UNSCRAMBLED_API_KEY`, `BASE_URL`) still work if the config file doesn't exist
 - This allows for gradual migration and supports CI/CD environments that use environment variables
 
 ## User Experience
@@ -90,8 +90,8 @@ When users run commands without being authenticated, they now see:
 You need to log in or sign up before using this command.
 
 To get started, run one of the following commands:
-  lightyear login
-  lightyear signup
+  un login
+  un signup
 ```
 
 ## Testing

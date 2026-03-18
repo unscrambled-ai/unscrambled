@@ -62,9 +62,9 @@ await syncConnector.sync("FULL", { useAsyncWrites: false });
 
 ```bash
 # Disable async writes globally
-export LIGHTYEAR_ASYNC_WRITES=false
+export UNSCRAMBLED_ASYNC_WRITES=false
 # or
-export LIGHTYEAR_ASYNC_WRITES=0
+export UNSCRAMBLED_ASYNC_WRITES=0
 ```
 
 ## Configuration Priority

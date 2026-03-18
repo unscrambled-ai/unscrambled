@@ -1,6 +1,6 @@
 # OAuth Connector & Builder Implementation Summary
 
-This document summarizes the complete OAuth connector and builder implementation for the Lightyear SDK.
+This document summarizes the complete OAuth connector and builder implementation for the Unscrambled SDK.
 
 ## What Was Implemented
 
@@ -131,7 +131,7 @@ const googleConnector = defineOAuthConnector("Google")
 const app = defineOAuth2CustomApp("google-drive")
   .withTitle("Google Drive Integration")
   .withOAuthConnector(googleConnector)
-  .addVariable("folderName", { defaultValue: "Lightyear" })
+  .addVariable("folderName", { defaultValue: "Unscrambled" })
   .deploy();
 ```
 
@@ -147,7 +147,7 @@ const advanced = defineOAuthConnector("AdvancedAPI")
     access_type: "offline",
   })
   .withHeaders({
-    "User-Agent": "Lightyear-SDK/1.0",
+    "User-Agent": "Unscrambled-SDK/1.0",
   })
   .buildFactory();
 ```
@@ -215,4 +215,4 @@ The OAuth connector and builder implementation is **complete and ready for use**
 4. Leverage automatic CLI operation support
 5. Build type-safe OAuth integrations with full IntelliSense support
 
-The implementation provides a solid foundation for OAuth2 authentication in the Lightyear SDK ecosystem.
+The implementation provides a solid foundation for OAuth2 authentication in the Unscrambled SDK ecosystem.

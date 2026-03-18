@@ -44,7 +44,7 @@ export function getDisplayTitle(name: string, title?: string): string {
 }
 
 /**
- * Get environment name following Lightyear conventions
+ * Get environment name following Unscrambled conventions
  * @internal
  */
 export function getEnvName(): string {

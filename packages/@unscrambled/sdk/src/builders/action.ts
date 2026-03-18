@@ -12,7 +12,7 @@ import type {
 } from "../types";
 import { registerAction } from "../registry";
 
-// Global action index to store run functions (similar to lightyear package)
+// Global action index to store run functions (similar to legacy package)
 declare global {
   var actionIndex: { [name: string]: RunFunc };
 }

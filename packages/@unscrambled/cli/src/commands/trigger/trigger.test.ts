@@ -8,7 +8,7 @@ vi.mock("fs");
 describe("Trigger Command Preferences", () => {
   const PREFS_FILE = path.join(
     process.cwd(),
-    ".lightyear",
+    ".unscrambled",
     "trigger-preferences.json"
   );
 

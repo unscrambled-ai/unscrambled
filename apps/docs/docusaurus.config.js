@@ -10,12 +10,12 @@ const config = {
     {
       src: "https://plausible.io/js/script.js",
       defer: true,
-      "data-domain": "connectors.runlightyear.com",
+      "data-domain": "connectors.unscrambled.ai",
     },
   ],
-  title: "Lightyear API Docs",
+  title: "Unscrambled API Docs",
   tagline: "Use some code to build integrations",
-  url: "https://connectors.runlightyear.com",
+  url: "https://connectors.unscrambled.ai",
   baseUrl: "/",
   trailingSlash: false,
   onBrokenLinks: "throw",
@@ -55,20 +55,20 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: "Lightyear",
+        title: "Unscrambled",
         logo: {
-          alt: "Lightyear Logo",
+          alt: "Unscrambled Logo",
           src: "img/logo.svg",
-          href: "https://www.runlightyear.com",
+          href: "https://www.unscrambled.ai",
         },
         items: [
           {
-            href: "https://docs.runlightyear.com",
-            label: "Lightyear Docs",
+            href: "https://docs.unscrambled.ai",
+            label: "Unscrambled Docs",
             position: "right",
           },
           {
-            href: "https://github.com/runlightyear/lightyear",
+            href: "https://github.com/unscrambled-ai/unscrambled",
             label: "GitHub",
             position: "right",
           },
@@ -112,7 +112,7 @@ const config = {
               // },
               {
                 label: "GitHub",
-                href: "https://github.com/runlightyear/lightyear",
+                href: "https://github.com/unscrambled-ai/unscrambled",
               },
             ],
           },

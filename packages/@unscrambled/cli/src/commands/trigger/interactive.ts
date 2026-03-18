@@ -12,7 +12,7 @@ interface TriggerPreferences {
   triggerForAllManagedUsers?: boolean;
 }
 
-const PREF_KEY = "lightyear-trigger-preferences";
+const PREF_KEY = "un-trigger-preferences";
 
 export async function runInteractiveTrigger(
   envOverride?: string

@@ -406,8 +406,8 @@ async function postDeploymentData(
   console.log(`   Base URL: ${payload.baseUrl || "(from env/default)"}`);
 
   const baseUrl =
-    payload.baseUrl || process.env.BASE_URL || "https://app.runlightyear.com";
-  // Allow payload override, otherwise use Lightyear's standard getEnvName logic
+    payload.baseUrl || process.env.BASE_URL || "https://app.unscrambled.ai";
+  // Allow payload override, otherwise use standard getEnvName logic
   const envName = payload.environment || process.env.ENV_NAME || "dev";
 
   console.log("\n🔧 Configuration resolved:");
@@ -419,7 +419,7 @@ async function postDeploymentData(
         ? "payload"
         : process.env.BASE_URL
         ? "environment"
-        : "default (https://app.runlightyear.com)"
+        : "default (https://app.unscrambled.ai)"
     }`
   );
 
@@ -463,15 +463,15 @@ async function postDeploymentData(
 
     // Get API key for authentication
     const apiKey =
-      payload.apiKey || process.env.LIGHTYEAR_API_KEY || process.env.API_KEY;
+      payload.apiKey || process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
     if (!apiKey) {
       console.error("❌ No API key provided");
       console.error("💡 API key can be provided via:");
       console.error("   - payload.apiKey parameter");
-      console.error("   - LIGHTYEAR_API_KEY environment variable");
+      console.error("   - UNSCRAMBLED_API_KEY environment variable");
       console.error("   - API_KEY environment variable");
       throw new Error(
-        "Missing API key. Provide via payload.apiKey or LIGHTYEAR_API_KEY/API_KEY environment variable."
+        "Missing API key. Provide via payload.apiKey or UNSCRAMBLED_API_KEY/API_KEY environment variable."
       );
     }
 
@@ -479,8 +479,8 @@ async function postDeploymentData(
       "🔐 API key source:",
       payload.apiKey
         ? "payload"
-        : process.env.LIGHTYEAR_API_KEY
-        ? "LIGHTYEAR_API_KEY env"
+        : process.env.UNSCRAMBLED_API_KEY
+        ? "UNSCRAMBLED_API_KEY env"
         : "API_KEY env"
     );
 
@@ -742,7 +742,7 @@ export const handleDeploy: DeployHandler = async (
     console.error(`🌍 Environment variables:`);
     console.error(
       `   BASE_URL: ${
-        process.env.BASE_URL || "(using default: https://app.runlightyear.com)"
+        process.env.BASE_URL || "(using default: https://app.unscrambled.ai)"
       }`
     );
     console.error(

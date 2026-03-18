@@ -351,7 +351,7 @@ export async function retrieveDelta<T = any>(props: {
 
   if (!apiKey) {
     throw new Error(
-      "Missing API key. Set LIGHTYEAR_API_KEY or API_KEY environment variable."
+      "Missing API key. Set UNSCRAMBLED_API_KEY or API_KEY environment variable."
     );
   }
 

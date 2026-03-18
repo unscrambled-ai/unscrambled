@@ -35,9 +35,9 @@ dev
   )
   .addOption(new Option("--dev").hideHelp())
   .action(async () => {
-    // `lightyear dev` is explicitly tied to the dev environment.
+    // `un dev` is explicitly tied to the dev environment.
     // Set env vars early so shared helpers and logging behave consistently.
-    process.env.LIGHTYEAR_ENV = "dev";
+    process.env.UNSCRAMBLED_ENV = "dev";
     process.env.ENV_NAME = "dev";
 
     requireAuth();
@@ -204,7 +204,7 @@ dev
       watch: ["src", "node_modules/@unscrambled/sdk/dist"],
       ext: "js,ts",
       execMap: {
-        js: "npx lightyear build",
+        js: "npx un build",
       },
     });
 
@@ -226,7 +226,7 @@ dev
         try {
           await triggerCommand.parseAsync([
             "node",
-            "lightyear",
+            "un",
             "trigger",
             "--interactive",
             "--env",

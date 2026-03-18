@@ -1,5 +1,5 @@
 /**
- * Salesforce Connectors for Lightyear
+ * Salesforce Connectors for Unscrambled
  *
  * @alpha
  *

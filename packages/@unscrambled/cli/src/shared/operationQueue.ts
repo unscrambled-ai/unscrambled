@@ -144,7 +144,7 @@ async function processOperations() {
   processingOperations = false;
 
   if (firstOperationsProcessed) {
-    terminal("\n\nDashboard is available at: https://app.runlightyear.com\n");
+    terminal("\n\nDashboard is available at: https://app.unscrambled.ai\n");
     firstOperationsProcessed = false;
   }
 

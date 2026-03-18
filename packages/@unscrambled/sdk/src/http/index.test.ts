@@ -11,13 +11,13 @@ global.fetch = vi.fn();
 describe("httpRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LIGHTYEAR_API_KEY = "test-api-key";
+    process.env.UNSCRAMBLED_API_KEY = "test-api-key";
     process.env.ENV_NAME = "test";
-    process.env.BASE_URL = "https://test.runlightyear.com";
+    process.env.BASE_URL = "https://test.unscrambled.ai";
   });
 
   afterEach(() => {
-    delete process.env.LIGHTYEAR_API_KEY;
+    delete process.env.UNSCRAMBLED_API_KEY;
     delete process.env.ENV_NAME;
     delete process.env.BASE_URL;
   });
@@ -319,13 +319,13 @@ describe("httpRequest", () => {
 describe("dataForLogging isolation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LIGHTYEAR_API_KEY = "test-api-key";
+    process.env.UNSCRAMBLED_API_KEY = "test-api-key";
     process.env.ENV_NAME = "test";
-    process.env.BASE_URL = "https://test.runlightyear.com";
+    process.env.BASE_URL = "https://test.unscrambled.ai";
   });
 
   afterEach(() => {
-    delete process.env.LIGHTYEAR_API_KEY;
+    delete process.env.UNSCRAMBLED_API_KEY;
     delete process.env.ENV_NAME;
     delete process.env.BASE_URL;
   });

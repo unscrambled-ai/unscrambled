@@ -1,3 +1,3 @@
-# Lightyear CLI
+# Unscrambled CLI
 
-The CLI for Lightyear
+The CLI for Unscrambled

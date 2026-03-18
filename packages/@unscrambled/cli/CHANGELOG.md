@@ -647,7 +647,7 @@
 
 ### Minor Changes
 
-- 776bbb7: Support for new LIGHTYEAR_API_KEY env var
+- 776bbb7: Support for new UNSCRAMBLED_API_KEY env var
 - bfbe1ae: Make git setup during create cross-platform
 
 ### Patch Changes

@@ -35,11 +35,11 @@ export async function parseJsonResponse(
         );
       } else if (response.status >= 500 && response.status < 600) {
         terminal.yellow(
-          `\n⚠️  Server error (${response.status}). The Lightyear API may be experiencing issues.\n`
+          `\n⚠️  Server error (${response.status}). The Unscrambled API may be experiencing issues.\n`
         );
       } else if (response.status === 401 || response.status === 403) {
         terminal.yellow(
-          `\n⚠️  Authentication failed. Check your LIGHTYEAR_API_KEY.\n`
+          `\n⚠️  Authentication failed. Check your UNSCRAMBLED_API_KEY.\n`
         );
       }
 
@@ -103,11 +103,11 @@ export function checkResponseOk(
       );
     } else if (response.status >= 500) {
       terminal.yellow(
-        `\n⚠️  Server error. The Lightyear API may be experiencing issues.\n\n`
+        `\n⚠️  Server error. The Unscrambled API may be experiencing issues.\n\n`
       );
     } else if (response.status === 401 || response.status === 403) {
       terminal.yellow(
-        `\n⚠️  Authentication failed. Check your LIGHTYEAR_API_KEY.\n\n`
+        `\n⚠️  Authentication failed. Check your UNSCRAMBLED_API_KEY.\n\n`
       );
     } else if (response.status === 404) {
       terminal.yellow(

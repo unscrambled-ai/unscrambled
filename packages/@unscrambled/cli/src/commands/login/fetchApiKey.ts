@@ -25,9 +25,9 @@ export default async function fetchApiKey(
       program.error("Error fetching api key");
     }
 
-    const { LIGHTYEAR_API_KEY } = json;
+    const { UNSCRAMBLED_API_KEY } = json;
 
-    return { LIGHTYEAR_API_KEY };
+    return { UNSCRAMBLED_API_KEY };
   } catch (error) {
     console.log("error", error);
     res.setHeader("location", `${baseUrl}/cli-login/failed`);

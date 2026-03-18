@@ -31,7 +31,7 @@ describe("Handlers", () => {
     vi.clearAllMocks();
 
     // Set test API key for authentication
-    process.env.LIGHTYEAR_API_KEY = "test-api-key-12345";
+    process.env.UNSCRAMBLED_API_KEY = "test-api-key-12345";
 
     // Mock successful HTTP response for tests
     (global.fetch as any).mockResolvedValue({
@@ -59,7 +59,7 @@ describe("Handlers", () => {
 
   afterEach(() => {
     // Clean up environment variables
-    delete process.env.LIGHTYEAR_API_KEY;
+    delete process.env.UNSCRAMBLED_API_KEY;
     delete process.env.API_KEY;
   });
 

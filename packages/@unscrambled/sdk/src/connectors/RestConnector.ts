@@ -22,7 +22,7 @@ export interface RestConnectorProps {
  * REST Connector for SDK
  *
  * Provides a simple interface for making REST API calls with configurable
- * base URL and headers. All requests go through the Lightyear HTTP proxy.
+ * base URL and headers. All requests go through the Unscrambled HTTP proxy.
  */
 export class RestConnector {
   private baseUrl: string;

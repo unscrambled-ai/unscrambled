@@ -18,8 +18,8 @@ for (const name in obj) {
     )
     .addOption(new Option("--dev").hideHelp())
     .action(async (options) => {
-      let authUrl = "https://app.runlightyear.com";
-      let baseUrl = "https://app.runlightyear.com";
+      let authUrl = "https://app.unscrambled.ai";
+      let baseUrl = "https://app.unscrambled.ai";
       if (options.dev) {
         terminal.red("In dev mode, using http://localhost:3000\n");
         authUrl = "http://localhost:3000";

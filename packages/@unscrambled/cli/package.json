@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "bin": {
-    "lightyear": "./dist/index.js"
+    "un": "./dist/index.js"
   },
   "scripts": {
     "dev": "nodemon --exec \"npx tsup src/index.ts --dts\" --watch src --ext ts,js",

@@ -5,26 +5,26 @@ import {
   readConfig,
   writeConfig,
   getConfigFilePath,
-  LightyearConfig,
+  UnscrambledConfig,
 } from "../../shared/configManager";
 
 export default async function writeConfigFile(
   {
-    LIGHTYEAR_API_KEY,
+    UNSCRAMBLED_API_KEY,
     baseUrl,
-  }: { LIGHTYEAR_API_KEY: string; baseUrl: string },
+  }: { UNSCRAMBLED_API_KEY: string; baseUrl: string },
   res: ServerResponse
 ) {
   try {
     const existing = readConfig();
 
-    const config: LightyearConfig = {
+    const config: UnscrambledConfig = {
       ...existing,
-      apiKey: LIGHTYEAR_API_KEY,
+      apiKey: UNSCRAMBLED_API_KEY,
     };
 
     // Only store baseUrl if it's not the default production URL
-    if (baseUrl !== "https://app.runlightyear.com") {
+    if (baseUrl !== "https://app.unscrambled.ai") {
       config.baseUrl = baseUrl;
     } else {
       delete config.baseUrl;

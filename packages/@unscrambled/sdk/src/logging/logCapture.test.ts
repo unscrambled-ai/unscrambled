@@ -168,7 +168,7 @@ describe("LogCapture", () => {
         uploadIntervalMs: 100,
         apiKey: "test-key",
         environment: "test",
-        baseUrl: "https://app.runlightyear.com",
+        baseUrl: "https://app.unscrambled.ai",
       });
 
       logCapture.startCapture();
@@ -180,7 +180,7 @@ describe("LogCapture", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://app.runlightyear.com/api/v1/projects/default/envs/test/logs",
+        "https://app.unscrambled.ai/api/v1/projects/default/envs/test/logs",
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
@@ -282,9 +282,9 @@ describe("LogCapture", () => {
       const originalEnv = process.env;
       process.env = {
         ...originalEnv,
-        LIGHTYEAR_BASE_URL: "https://custom.example.com",
-        LIGHTYEAR_ENV: "staging",
-        LIGHTYEAR_API_KEY: "env-api-key",
+        UNSCRAMBLED_BASE_URL: "https://custom.example.com",
+        UNSCRAMBLED_ENV: "staging",
+        UNSCRAMBLED_API_KEY: "env-api-key",
       };
 
       const logCapture = new LogCapture();

@@ -1,6 +1,6 @@
 # OAuth Connector Builder
 
-This document describes the OAuth connector builder functionality for the Lightyear SDK, which provides a fluent API for creating OAuth connectors and integrating them with custom apps.
+This document describes the OAuth connector builder functionality for the Unscrambled SDK, which provides a fluent API for creating OAuth connectors and integrating them with custom apps.
 
 ## Overview
 
@@ -243,7 +243,7 @@ const googleDriveApp = defineOAuth2CustomApp("google-drive")
   .addVariable("folderName", {
     title: "Default Folder",
     description: "Default folder for file operations",
-    defaultValue: "Lightyear",
+    defaultValue: "Unscrambled",
   })
   .deploy();
 ```
