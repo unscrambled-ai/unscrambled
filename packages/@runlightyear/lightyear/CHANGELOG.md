@@ -1,5 +1,12 @@
 # @runlightyear/lightyear
 
+## 2.4.0
+
+### Minor Changes
+
+- 59e3915: Stop logging http requests here as backend handle it now
+- cfbf435: Flush logs at least every second so user doesn't experience lag
+
 ## 2.3.2
 
 ### Patch Changes

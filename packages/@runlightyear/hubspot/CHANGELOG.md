@@ -1,5 +1,20 @@
 # @runlightyear/hubspot
 
+## 2.0.0
+
+### Major Changes
+
+- 44e92e7: Use new SDK
+
+### Patch Changes
+
+- Updated dependencies [ac90225]
+- Updated dependencies [59e3915]
+- Updated dependencies [5e15a80]
+- Updated dependencies [cfbf435]
+  - @runlightyear/sdk@0.2.0
+  - @runlightyear/lightyear@2.4.0
+
 ## 1.1.0
 
 ### Minor Changes

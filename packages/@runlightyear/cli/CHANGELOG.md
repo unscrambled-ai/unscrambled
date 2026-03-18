@@ -1,5 +1,18 @@
 # @runlightyear/cli
 
+## 1.8.0
+
+### Minor Changes
+
+- e7a7545: Added trigger action command
+- 9ebfb72: Added trigger action command
+
+  - New `t` command to interactively trigger actions
+  - Press `t` in dev mode to trigger actions
+  - Support for managed users (trigger for all or specific user)
+  - Remembers user preferences in `.lightyear/trigger-preferences.json`
+  - Operation queue pauses while trigger prompt is active
+
 ## 1.7.3
 
 ### Patch Changes
