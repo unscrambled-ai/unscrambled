@@ -1,5 +1,5 @@
 ---
-"@runlightyear/cli": minor
+"@unscrambled/cli": minor
 ---
 
 Added trigger action command

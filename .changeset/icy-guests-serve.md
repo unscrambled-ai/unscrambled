@@ -1,5 +1,5 @@
 ---
-"@runlightyear/sdk": minor
+"@unscrambled/sdk": minor
 ---
 
 Use new SDK

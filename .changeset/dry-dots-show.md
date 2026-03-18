@@ -1,5 +1,5 @@
 ---
-"@runlightyear/hubspot": major
+"@unscrambled/hubspot": major
 ---
 
 Use new SDK

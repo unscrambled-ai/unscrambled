@@ -14,7 +14,7 @@ Lightyear helps you to write powerful integrations in a few lines of code. With 
 Create your project directory from our template.
 
 ```shell
-npx @runlightyear/cli create lightyear-integrations
+npx @unscrambled/cli create lightyear-integrations
 ```
 
 ### Install dependencies

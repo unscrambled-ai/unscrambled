@@ -11,14 +11,14 @@ Internal dependency declarations are inconsistent:
 ```json
 // hubspot/package.json
 "dependencies": {
-  "@runlightyear/sdk": "*",
-  "@runlightyear/lightyear": "*"
+  "@unscrambled/sdk": "*",
+  "@unscrambled/lightyear": "*"
 }
 
 // salesforce/package.json
 "dependencies": {
-  "@runlightyear/sdk": "workspace:*",
-  "@runlightyear/lightyear": "workspace:*"
+  "@unscrambled/sdk": "workspace:*",
+  "@unscrambled/lightyear": "workspace:*"
 }
 ```
 
@@ -48,31 +48,31 @@ Standardize on `workspace:^` for all internal dependencies.
 ### Changes
 
 ```json
-// packages/@runlightyear/hubspot/package.json
+// packages/@unscrambled/hubspot/package.json
 {
   "dependencies": {
-    "@runlightyear/lightyear": "workspace:^"
+    "@unscrambled/lightyear": "workspace:^"
   },
   "peerDependencies": {
-    "@runlightyear/sdk": "^0.1.0"
+    "@unscrambled/sdk": "^0.1.0"
   },
   "devDependencies": {
-    "@runlightyear/sdk": "workspace:^"
+    "@unscrambled/sdk": "workspace:^"
   }
 }
 ```
 
 ```json
-// packages/@runlightyear/salesforce/package.json
+// packages/@unscrambled/salesforce/package.json
 {
   "dependencies": {
-    "@runlightyear/lightyear": "workspace:^"
+    "@unscrambled/lightyear": "workspace:^"
   },
   "peerDependencies": {
-    "@runlightyear/sdk": "^0.1.0"
+    "@unscrambled/sdk": "^0.1.0"
   },
   "devDependencies": {
-    "@runlightyear/sdk": "workspace:^"
+    "@unscrambled/sdk": "workspace:^"
   }
 }
 ```
@@ -91,7 +91,7 @@ Once `lightyear` is fully deprecated and connectors no longer need it:
 ```json
 // Remove entirely
 "dependencies": {
-  // "@runlightyear/lightyear": "workspace:^"  // Remove this
+  // "@unscrambled/lightyear": "workspace:^"  // Remove this
 }
 ```
 

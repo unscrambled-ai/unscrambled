@@ -8,7 +8,7 @@ Lightyear is an integration platform that enables developers to build powerful A
 
 This is a monorepo managed with **pnpm workspaces** and **Turbo**. The workspace contains:
 
-### Core Packages (`packages/@runlightyear/`)
+### Core Packages (`packages/@unscrambled/`)
 
 1. **`sdk/`** - The modern TypeScript SDK (actively developed)
 2. **`lightyear/`** - Legacy SDK (deprecated, not to be modified, but can be used as reference)
@@ -29,7 +29,7 @@ This is a monorepo managed with **pnpm workspaces** and **Turbo**. The workspace
 
 ## Architecture Overview
 
-### 1. SDK Package (`@runlightyear/sdk`)
+### 1. SDK Package (`@unscrambled/sdk`)
 
 The SDK is the heart of the platform, providing a **builder pattern API** for defining integrations. Key principles:
 
@@ -131,7 +131,7 @@ All handlers include:
 - **Error handling** - Structured error responses
 - **Status codes** - Lambda-compatible responses (200, 202, 400, 500)
 
-### 2. CLI Package (`@runlightyear/cli`)
+### 2. CLI Package (`@unscrambled/cli`)
 
 The CLI provides developer tooling built on **Commander.js**:
 
@@ -380,7 +380,7 @@ Features:
 
 ### 6. Pre-built Connectors
 
-#### HubSpot Package (`@runlightyear/hubspot`)
+#### HubSpot Package (`@unscrambled/hubspot`)
 
 Pre-configured HubSpot integration:
 
@@ -389,7 +389,7 @@ Pre-configured HubSpot integration:
 - Sync connector for CRM objects (contacts, companies, deals)
 - Model definitions for common HubSpot objects
 
-#### Salesforce Package (`@runlightyear/salesforce`)
+#### Salesforce Package (`@unscrambled/salesforce`)
 
 Pre-configured Salesforce integration:
 
@@ -399,7 +399,7 @@ Pre-configured Salesforce integration:
 
 ## Deprecated: Lightyear Package
 
-The `packages/@runlightyear/lightyear` package is the original SDK implementation. It is **deprecated and should not be modified**.
+The `packages/@unscrambled/lightyear` package is the original SDK implementation. It is **deprecated and should not be modified**.
 
 ### Key Differences from SDK
 
@@ -443,14 +443,14 @@ Common reference points:
 
 ### Creating a New Integration
 
-1. **Create project**: `npx @runlightyear/cli create my-integration`
+1. **Create project**: `npx @unscrambled/cli create my-integration`
 2. **Install dependencies**: `cd my-integration && npm install`
 3. **Authenticate**: `npx lightyear login`
 4. **Start dev mode**: `npm run dev`
 5. **Write integration code** in `src/`:
 
    ```typescript
-   import { defineOAuth2CustomApp, defineAction } from "@runlightyear/sdk";
+   import { defineOAuth2CustomApp, defineAction } from "@unscrambled/sdk";
 
    const myApp = defineOAuth2CustomApp("my-app")
      .withTitle("My App")
@@ -533,12 +533,12 @@ Based on memory preferences, the CLI follows these conventions:
 
 ## Additional Documentation
 
-- `packages/@runlightyear/sdk/README.md` - SDK quick start
-- `packages/@runlightyear/sdk/OAUTH_CONNECTOR.md` - OAuth connector details
-- `packages/@runlightyear/sdk/OAUTH_BUILDER.md` - OAuth builder API
-- `packages/@runlightyear/sdk/DEPLOY_SCHEMA.md` - Deployment schema
-- `packages/@runlightyear/sdk/docs/` - Additional SDK documentation
-- `packages/@runlightyear/sdk/examples/` - Code examples
+- `packages/@unscrambled/sdk/README.md` - SDK quick start
+- `packages/@unscrambled/sdk/OAUTH_CONNECTOR.md` - OAuth connector details
+- `packages/@unscrambled/sdk/OAUTH_BUILDER.md` - OAuth builder API
+- `packages/@unscrambled/sdk/DEPLOY_SCHEMA.md` - Deployment schema
+- `packages/@unscrambled/sdk/docs/` - Additional SDK documentation
+- `packages/@unscrambled/sdk/examples/` - Code examples
 - `apps/docs/` - Full documentation site
 
 ## Common Patterns
@@ -546,7 +546,7 @@ Based on memory preferences, the CLI follows these conventions:
 ### Defining a Custom OAuth App
 
 ```typescript
-import { defineOAuth2CustomApp, defineOAuthConnector } from "@runlightyear/sdk";
+import { defineOAuth2CustomApp, defineOAuthConnector } from "@unscrambled/sdk";
 
 const myOAuthConnector = defineOAuthConnector("MyAPI")
   .withAuthUrl("https://api.example.com/oauth/authorize")
@@ -564,7 +564,7 @@ const myApp = defineOAuth2CustomApp("my-app")
 ### Defining an Action with Type Safety
 
 ```typescript
-import { defineAction } from "@runlightyear/sdk";
+import { defineAction } from "@unscrambled/sdk";
 
 defineAction("process-order")
   .withTitle("Process Order")
@@ -591,7 +591,7 @@ import {
   createSyncConnector,
   defineCollection,
   defineModel,
-} from "@runlightyear/sdk";
+} from "@unscrambled/sdk";
 import { z } from "zod";
 
 const contactSchema = z.object({

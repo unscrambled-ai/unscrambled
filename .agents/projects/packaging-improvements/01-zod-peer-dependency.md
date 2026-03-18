@@ -34,7 +34,7 @@ Move Zod to `peerDependencies` in all packages.
 ### SDK Changes
 
 ```json
-// packages/@runlightyear/sdk/package.json
+// packages/@unscrambled/sdk/package.json
 {
   "peerDependencies": {
     "zod": "^4.0.0"
@@ -48,7 +48,7 @@ Move Zod to `peerDependencies` in all packages.
 Add convenience re-export:
 
 ```typescript
-// packages/@runlightyear/sdk/src/index.ts
+// packages/@unscrambled/sdk/src/index.ts
 export { z } from 'zod';
 export type { ZodSchema, ZodType, ZodObject, infer as ZodInfer } from 'zod';
 ```
@@ -56,28 +56,28 @@ export type { ZodSchema, ZodType, ZodObject, infer as ZodInfer } from 'zod';
 ### Connector Changes
 
 ```json
-// packages/@runlightyear/hubspot/package.json
+// packages/@unscrambled/hubspot/package.json
 {
   "peerDependencies": {
-    "@runlightyear/sdk": "^0.1.0",
+    "@unscrambled/sdk": "^0.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@runlightyear/sdk": "workspace:^",
+    "@unscrambled/sdk": "workspace:^",
     "zod": "^4.0.17"
   }
 }
 ```
 
 ```json
-// packages/@runlightyear/salesforce/package.json
+// packages/@unscrambled/salesforce/package.json
 {
   "peerDependencies": {
-    "@runlightyear/sdk": "^0.1.0",
+    "@unscrambled/sdk": "^0.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@runlightyear/sdk": "workspace:^",
+    "@unscrambled/sdk": "workspace:^",
     "zod": "^4.0.17"
   }
 }
@@ -88,27 +88,27 @@ export type { ZodSchema, ZodType, ZodObject, infer as ZodInfer } from 'zod';
 ### Before (Current)
 
 ```bash
-npm install @runlightyear/hubspot
+npm install @unscrambled/hubspot
 # Installs hubspot + sdk + zod (possibly multiple copies)
 ```
 
 ```typescript
 import { z } from 'zod';
-import { defineHubSpotCustomApp } from '@runlightyear/hubspot';
+import { defineHubSpotCustomApp } from '@unscrambled/hubspot';
 // Types may not align if different zod versions
 ```
 
 ### After (Proposed)
 
 ```bash
-npm install @runlightyear/hubspot zod
-# or: npm install @runlightyear/hubspot (warns about missing peer)
+npm install @unscrambled/hubspot zod
+# or: npm install @unscrambled/hubspot (warns about missing peer)
 ```
 
 ```typescript
 import { z } from 'zod';
-// or: import { z } from '@runlightyear/sdk';
-import { defineHubSpotCustomApp } from '@runlightyear/hubspot';
+// or: import { z } from '@unscrambled/sdk';
+import { defineHubSpotCustomApp } from '@unscrambled/hubspot';
 // Single zod instance, types always align
 ```
 
@@ -125,7 +125,7 @@ This pattern is used by:
 
 1. Update package.json files (non-breaking for existing installs)
 2. Add re-export to SDK
-3. Update documentation to show `npm install @runlightyear/sdk zod`
+3. Update documentation to show `npm install @unscrambled/sdk zod`
 4. Consider adding `peerDependenciesMeta` for better warnings:
 
 ```json

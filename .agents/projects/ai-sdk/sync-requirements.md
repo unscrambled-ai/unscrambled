@@ -1,6 +1,6 @@
 ## Sync Connector: Implementation Requirements
 
-These requirements describe how the `sync` function must behave for a Sync Connector, based on the current implementation in `packages/@runlightyear/lightyear` (notably `connectors/SyncConnector.ts`, `connectors/ModelConnector.ts`, and base utilities in `base/collection.ts`, `base/syncAction.ts`, `base/time.ts`). They are intended for implementing compatible behavior in the AI SDK.
+These requirements describe how the `sync` function must behave for a Sync Connector, based on the current implementation in `packages/@unscrambled/lightyear` (notably `connectors/SyncConnector.ts`, `connectors/ModelConnector.ts`, and base utilities in `base/collection.ts`, `base/syncAction.ts`, `base/time.ts`). They are intended for implementing compatible behavior in the AI SDK.
 
 ### Scope
 
@@ -9,7 +9,7 @@ These requirements describe how the `sync` function must behave for a Sync Conne
 
 ### SDK package differences (what exists today)
 
-- **Builder-pattern connector**: In `packages/@runlightyear/sdk/src/builders/syncConnector.ts`, the SDK exposes a builder that configures per-model operations (`list`, `create`, `update`, `delete`, optional `bulk`). Each operation describes request/response via config, with optional `zod` schema validation and transform functions.
+- **Builder-pattern connector**: In `packages/@unscrambled/sdk/src/builders/syncConnector.ts`, the SDK exposes a builder that configures per-model operations (`list`, `create`, `update`, `delete`, optional `bulk`). Each operation describes request/response via config, with optional `zod` schema validation and transform functions.
 - **Current SyncConnector API**: `SyncConnector.sync()` has no parameters and currently just iterates configured models and performs a single `list()` call when defined, logging the count. It does not yet implement Lightyear’s `syncId`, direction, progress, pull/push loops, pagination loops, or platform interactions.
 - **List contract in SDK**: `list(params)` returns `{ items: T[]; nextCursor?: string }`. Pagination can be configured via `pagination` (cursor/page/offset) and a `responseSchema` + `transform` can shape typed `items`.
 - **No platform primitives**: The SDK builder does not directly call platform APIs like `getSync`, `updateSync`, `upsertObjectBatch`, `retrieveDelta`, `confirmChange(…)`. These must be integrated by the `sync` orchestrator when running inside the platform context.

@@ -4,7 +4,7 @@ I am building an integration platform where users can sync data between products
 
 This will be to replace the existing sdk, which is currently in the packages directory lightyear. We can ignore this directory for now, although we will refer to it later.
 
-I want you to first create the package called '@runlightyear/sdk' and give it some basic structure similar to the other packages.
+I want you to first create the package called '@unscrambled/sdk' and give it some basic structure similar to the other packages.
 
 After that, you'll notice I worked with you for a while and the exploration we did is contained in the directory .exploration
 
@@ -49,7 +49,7 @@ For the rest connectors, when defining headers, there is a special syntax we can
 
 For sync connectors, most will have a set of model connectors that correspond to the models on the collection. We will use the builder pattern to define the sync connector and then use the .with method to add the model connectors.
 
-In the example-templates directory, I have a number of example templates (named like action-examples-template.md, collection-examples-template.md, etc.) that show how to use the SDK. I want you to create a directory in @runlightyear/sdk/examples that contains these templates populated with the examples you create. Important:
+In the example-templates directory, I have a number of example templates (named like action-examples-template.md, collection-examples-template.md, etc.) that show how to use the SDK. I want you to create a directory in @unscrambled/sdk/examples that contains these templates populated with the examples you create. Important:
 
 - Only create the examples that are listed, do not create your own additional examples.
 - Each heading in the template (e.g., "## Define an action with a name") should have a corresponding code example in the implementation file.

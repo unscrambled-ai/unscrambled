@@ -24,20 +24,20 @@ This directory contains proposals for improving how Lightyear packages are publi
 ### Package Dependencies
 
 ```
-@runlightyear/sdk (0.1.0)
+@unscrambled/sdk (0.1.0)
     └── zod: ^4.0.17 (dependency)
 
-@runlightyear/hubspot (1.1.0)
-    ├── @runlightyear/sdk: "*" (dependency)
-    ├── @runlightyear/lightyear: "*" (dependency)
+@unscrambled/hubspot (1.1.0)
+    ├── @unscrambled/sdk: "*" (dependency)
+    ├── @unscrambled/lightyear: "*" (dependency)
     └── zod: ^4.0.17 (dependency)
 
-@runlightyear/salesforce (0.10.2)
-    ├── @runlightyear/sdk: "workspace:*" (dependency)
-    ├── @runlightyear/lightyear: "workspace:*" (dependency)
+@unscrambled/salesforce (0.10.2)
+    ├── @unscrambled/sdk: "workspace:*" (dependency)
+    ├── @unscrambled/lightyear: "workspace:*" (dependency)
     └── zod: ^4.0.17 (dependency)
 
-@runlightyear/lightyear (2.3.2) [DEPRECATED]
+@unscrambled/lightyear (2.3.2) [DEPRECATED]
     └── zod: ^3.22.4 (dependency)
 ```
 
@@ -51,7 +51,7 @@ This directory contains proposals for improving how Lightyear packages are publi
 Verified:
 ```javascript
 // hubspot/dist/index.js
-var import_sdk = require("@runlightyear/sdk");  // External, not bundled
+var import_sdk = require("@unscrambled/sdk");  // External, not bundled
 var import_zod = require("zod");                 // External, not bundled
 ```
 
@@ -75,11 +75,11 @@ Bundle sizes confirm no bundling:
 
 ```
 lightyear/
-├── packages/@runlightyear/
-│   ├── sdk/                    # @runlightyear/sdk (core)
-│   ├── cli/                    # @runlightyear/cli
-│   ├── hubspot/                # @runlightyear/hubspot
-│   ├── salesforce/             # @runlightyear/salesforce
+├── packages/@unscrambled/
+│   ├── sdk/                    # @unscrambled/sdk (core)
+│   ├── cli/                    # @unscrambled/cli
+│   ├── hubspot/                # @unscrambled/hubspot
+│   ├── salesforce/             # @unscrambled/salesforce
 │   └── .../                    # More connectors
 ├── apps/
 │   └── docs/                   # Documentation site
@@ -94,15 +94,15 @@ lightyear/
 SDK as peerDependency in connectors:
 
 ```json
-// packages/@runlightyear/hubspot/package.json
+// packages/@unscrambled/hubspot/package.json
 {
-  "name": "@runlightyear/hubspot",
+  "name": "@unscrambled/hubspot",
   "peerDependencies": {
-    "@runlightyear/sdk": "^0.1.0",
+    "@unscrambled/sdk": "^0.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@runlightyear/sdk": "workspace:^",
+    "@unscrambled/sdk": "workspace:^",
     "zod": "^4.0.17"
   }
 }
