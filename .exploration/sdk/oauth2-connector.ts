@@ -44,7 +44,7 @@ export class OAuth2Connector {
    */
   getRedirectUri(): string {
     return this.config.redirectUri || 
-      `https://platform.lightyear.com/oauth/callback/${this.customApp.name}`;
+      `https://platform.unscrambled.ai/oauth/callback/${this.customApp.name}`;
   }
 
   /**

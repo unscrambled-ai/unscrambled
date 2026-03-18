@@ -6,7 +6,7 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "packages/@runlightyear/*",
+    "packages/@unscrambled/*",
     "packages/util/*"
   ],
   "scripts": {
@@ -22,7 +22,7 @@
     "test:watch": "turbo run test:watch",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "docs:extract": "turbo run docs:extract",
-    "docs:document": "mkdir -p temp/@runlightyear; api-documenter markdown --input-folder temp/@runlightyear --output-folder apps/docs/docs/api",
+    "docs:document": "mkdir -p temp/@unscrambled; api-documenter markdown --input-folder temp/@unscrambled --output-folder apps/docs/docs/api",
     "docs:generate": "pnpm run docs:extract && pnpm run docs:document && pnpm run build:docs",
     "docs:generate:dev": "pnpm run docs:extract; pnpm run docs:document",
     "changeset": "changeset",
@@ -46,7 +46,7 @@
   "packageManager": "pnpm@8.15.3",
   "dependencies": {
     "@changesets/cli": "^2.29.4",
-    "@runlightyear/sdk": "workspace:^"
+    "@unscrambled/sdk": "workspace:^"
   },
   "pnpm": {
     "overrides": {

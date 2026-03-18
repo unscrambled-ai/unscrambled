@@ -52,7 +52,7 @@ This means:
 ```json
 {
   "linked": [
-    ["@runlightyear/sdk", "@runlightyear/hubspot", "@runlightyear/salesforce"]
+    ["@unscrambled/sdk", "@unscrambled/hubspot", "@unscrambled/salesforce"]
   ]
 }
 ```
@@ -74,7 +74,7 @@ This means:
 ```json
 {
   "fixed": [
-    ["@runlightyear/sdk", "@runlightyear/hubspot", "@runlightyear/salesforce"]
+    ["@unscrambled/sdk", "@unscrambled/hubspot", "@unscrambled/salesforce"]
   ]
 }
 ```
@@ -109,12 +109,12 @@ This signals "these packages are tightly coupled and evolving together" while st
   "commit": false,
   "fixed": [],
   "linked": [
-    ["@runlightyear/sdk", "@runlightyear/hubspot", "@runlightyear/salesforce"]
+    ["@unscrambled/sdk", "@unscrambled/hubspot", "@unscrambled/salesforce"]
   ],
   "access": "restricted",
   "baseBranch": "main",
   "updateInternalDependencies": "minor",
-  "ignore": ["@runlightyear/lightyear"]
+  "ignore": ["@unscrambled/lightyear"]
 }
 ```
 
@@ -124,6 +124,6 @@ Note: `lightyear` is excluded since it's deprecated and should version independe
 
 The current setup is valid. The version mismatch is cosmetic and can be addressed through documentation:
 
-> "Use the latest versions of all @runlightyear packages together for best compatibility."
+> "Use the latest versions of all @unscrambled packages together for best compatibility."
 
 This is a low-priority improvement.

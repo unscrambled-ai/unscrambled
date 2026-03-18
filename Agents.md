@@ -1,18 +1,17 @@
-# Lightyear Integration Platform - Architecture Guide
+# Unscrambled Integration Platform - Architecture Guide
 
 ## Overview
 
-Lightyear is an integration platform that enables developers to build powerful API integrations using TypeScript with minimal boilerplate. The platform provides built-in authentication, data synchronization, and serverless infrastructure, abstracting away the complexity of API automation.
+Unscrambled is an integration platform that enables developers to build powerful API integrations using TypeScript with minimal boilerplate. The platform provides built-in authentication, data synchronization, and serverless infrastructure, abstracting away the complexity of API automation.
 
 ## Repository Structure
 
 This is a monorepo managed with **pnpm workspaces** and **Turbo**. The workspace contains:
 
-### Core Packages (`packages/@runlightyear/`)
+### Core Packages (`packages/@unscrambled/`)
 
 1. **`sdk/`** - The modern TypeScript SDK (actively developed)
-2. **`lightyear/`** - Legacy SDK (deprecated, not to be modified, but can be used as reference)
-3. **`cli/`** - Command-line interface for development and deployment
+2. **`cli/`** - Command-line interface for development and deployment
 4. **`hubspot/`** - Pre-built HubSpot integration connector
 5. **`salesforce/`** - Pre-built Salesforce integration connector
 
@@ -29,7 +28,7 @@ This is a monorepo managed with **pnpm workspaces** and **Turbo**. The workspace
 
 ## Architecture Overview
 
-### 1. SDK Package (`@runlightyear/sdk`)
+### 1. SDK Package (`@unscrambled/sdk`)
 
 The SDK is the heart of the platform, providing a **builder pattern API** for defining integrations. Key principles:
 
@@ -131,7 +130,7 @@ All handlers include:
 - **Error handling** - Structured error responses
 - **Status codes** - Lambda-compatible responses (200, 202, 400, 500)
 
-### 2. CLI Package (`@runlightyear/cli`)
+### 2. CLI Package (`@unscrambled/cli`)
 
 The CLI provides developer tooling built on **Commander.js**:
 
@@ -143,7 +142,7 @@ The CLI provides developer tooling built on **Commander.js**:
 - Installs dependencies
 - Initializes git repository
 
-**`signup` / `login`** - Authenticate with Lightyear platform
+**`signup` / `login`** - Authenticate with Unscrambled platform
 
 - Opens browser for OAuth authentication
 - Starts local server to receive callback
@@ -257,16 +256,16 @@ class RestConnector {
 
 Orchestrates bidirectional data synchronization:
 
-**Pull Phase** (External System → Lightyear):
+**Pull Phase** (External System → Unscrambled):
 
 1. Calls model's `list()` configuration to fetch data
 2. Handles pagination (cursor/page/offset-based)
-3. Calls `upsertObjectBatch()` to store in Lightyear
+3. Calls `upsertObjectBatch()` to store in Unscrambled
 4. Tracks sync progress and state
 
-**Push Phase** (Lightyear → External System):
+**Push Phase** (Unscrambled → External System):
 
-1. Calls `retrieveDelta()` to get changes from Lightyear
+1. Calls `retrieveDelta()` to get changes from Unscrambled
 2. Groups changes by operation (create/update/delete)
 3. Calls model's `create()`, `update()`, `delete()` configurations
 4. Uses `ChangeProcessor` for async batching
@@ -286,8 +285,8 @@ Orchestrates bidirectional data synchronization:
 
 **Sync Directions**:
 
-- `pull` - External → Lightyear
-- `push` - Lightyear → External
+- `pull` - External → Unscrambled
+- `push` - Unscrambled → External
 - `bidirectional` - Both directions
 
 ### 4. Type Safety
@@ -380,7 +379,7 @@ Features:
 
 ### 6. Pre-built Connectors
 
-#### HubSpot Package (`@runlightyear/hubspot`)
+#### HubSpot Package (`@unscrambled/hubspot`)
 
 Pre-configured HubSpot integration:
 
@@ -389,7 +388,7 @@ Pre-configured HubSpot integration:
 - Sync connector for CRM objects (contacts, companies, deals)
 - Model definitions for common HubSpot objects
 
-#### Salesforce Package (`@runlightyear/salesforce`)
+#### Salesforce Package (`@unscrambled/salesforce`)
 
 Pre-configured Salesforce integration:
 
@@ -397,60 +396,18 @@ Pre-configured Salesforce integration:
 - REST connector for Salesforce REST API
 - Common object models (Account, Contact, Opportunity, Lead)
 
-## Deprecated: Lightyear Package
-
-The `packages/@runlightyear/lightyear` package is the original SDK implementation. It is **deprecated and should not be modified**.
-
-### Key Differences from SDK
-
-**Global Indexes vs Registry**:
-
-- Lightyear uses global indexes: `globalThis.actionIndex`, `globalThis.deployList`
-- SDK uses a proper Registry class for tracking components
-
-**Function-based vs Builder-based**:
-
-- Lightyear uses direct function calls: `defineAction({ name, run })`
-- SDK uses builder pattern: `defineAction(name).withRun(run).deploy()`
-
-**Handler vs Individual Functions**:
-
-- Lightyear exports individual handler functions
-- SDK provides unified `handler()` with operation routing
-
-**Import from lightyear to SDK**:
-
-- SDK still imports some utilities from lightyear (getApiKey, getBaseUrl, etc.)
-- CLI depends on lightyear for certain shared functionality
-- This is temporary - lightyear will eventually be fully replaced
-
-### Using Lightyear as Reference
-
-When implementing new features in the SDK:
-
-1. Check lightyear for existing implementations
-2. Study the approach and API contracts
-3. Re-implement using SDK patterns (builders, registry, handlers)
-4. Maintain backward compatibility where needed
-
-Common reference points:
-
-- `lightyear/src/base/` - Core functionality implementations
-- `lightyear/src/connectors/` - Connector implementations
-- `lightyear/src/handler/` - Handler implementations for comparison
-
 ## Development Workflow
 
 ### Creating a New Integration
 
-1. **Create project**: `npx @runlightyear/cli create my-integration`
+1. **Create project**: `npx @unscrambled/cli create my-integration`
 2. **Install dependencies**: `cd my-integration && npm install`
-3. **Authenticate**: `npx lightyear login`
+3. **Authenticate**: `npx un login`
 4. **Start dev mode**: `npm run dev`
 5. **Write integration code** in `src/`:
 
    ```typescript
-   import { defineOAuth2CustomApp, defineAction } from "@runlightyear/sdk";
+   import { defineOAuth2CustomApp, defineAction } from "@unscrambled/sdk";
 
    const myApp = defineOAuth2CustomApp("my-app")
      .withTitle("My App")
@@ -515,13 +472,6 @@ my-integration/
 - `src/shared/` - Shared utilities
 - `src/logging.ts` - Terminal output formatting
 
-### Lightyear Package (Deprecated)
-
-- `src/base/` - Base functionality
-- `src/connectors/` - Connector implementations
-- `src/handler/` - Handler implementations
-- Reference only - do not modify
-
 ## CLI Conventions
 
 Based on memory preferences, the CLI follows these conventions:
@@ -533,12 +483,12 @@ Based on memory preferences, the CLI follows these conventions:
 
 ## Additional Documentation
 
-- `packages/@runlightyear/sdk/README.md` - SDK quick start
-- `packages/@runlightyear/sdk/OAUTH_CONNECTOR.md` - OAuth connector details
-- `packages/@runlightyear/sdk/OAUTH_BUILDER.md` - OAuth builder API
-- `packages/@runlightyear/sdk/DEPLOY_SCHEMA.md` - Deployment schema
-- `packages/@runlightyear/sdk/docs/` - Additional SDK documentation
-- `packages/@runlightyear/sdk/examples/` - Code examples
+- `packages/@unscrambled/sdk/README.md` - SDK quick start
+- `packages/@unscrambled/sdk/OAUTH_CONNECTOR.md` - OAuth connector details
+- `packages/@unscrambled/sdk/OAUTH_BUILDER.md` - OAuth builder API
+- `packages/@unscrambled/sdk/DEPLOY_SCHEMA.md` - Deployment schema
+- `packages/@unscrambled/sdk/docs/` - Additional SDK documentation
+- `packages/@unscrambled/sdk/examples/` - Code examples
 - `apps/docs/` - Full documentation site
 
 ## Common Patterns
@@ -546,7 +496,7 @@ Based on memory preferences, the CLI follows these conventions:
 ### Defining a Custom OAuth App
 
 ```typescript
-import { defineOAuth2CustomApp, defineOAuthConnector } from "@runlightyear/sdk";
+import { defineOAuth2CustomApp, defineOAuthConnector } from "@unscrambled/sdk";
 
 const myOAuthConnector = defineOAuthConnector("MyAPI")
   .withAuthUrl("https://api.example.com/oauth/authorize")
@@ -564,7 +514,7 @@ const myApp = defineOAuth2CustomApp("my-app")
 ### Defining an Action with Type Safety
 
 ```typescript
-import { defineAction } from "@runlightyear/sdk";
+import { defineAction } from "@unscrambled/sdk";
 
 defineAction("process-order")
   .withTitle("Process Order")
@@ -591,7 +541,7 @@ import {
   createSyncConnector,
   defineCollection,
   defineModel,
-} from "@runlightyear/sdk";
+} from "@unscrambled/sdk";
 import { z } from "zod";
 
 const contactSchema = z.object({
@@ -712,8 +662,7 @@ The SDK's SyncConnector interfaces with platform APIs:
 
 Based on the `.exploration` and `.agents` directories, planned improvements include:
 
-1. **Complete lightyear deprecation** - Fully migrate all functionality to SDK
-2. **Enhanced type safety** - More comprehensive type inference
+1. **Enhanced type safety** - More comprehensive type inference
 3. **WebSocket/GraphQL support** - Additional connector types
 4. **Improved error handling** - More detailed error messages and recovery
 5. **Testing utilities** - Built-in testing framework for integrations
@@ -730,11 +679,10 @@ When adding new features to the SDK:
 4. Include comprehensive TypeScript types
 5. Write examples in `examples/` directory
 6. Update this documentation
-7. Reference lightyear package for compatibility guidance
 
 ## Conclusion
 
-Lightyear provides a comprehensive platform for building type-safe API integrations. The SDK package is the modern, actively-developed interface, while the lightyear package serves as a reference for existing patterns. The CLI provides seamless development experience with local execution and automatic deployment.
+Unscrambled provides a comprehensive platform for building type-safe API integrations. The SDK package is the core interface, and the CLI provides seamless development experience with local execution and automatic deployment.
 
 Key principles:
 
@@ -744,4 +692,4 @@ Key principles:
 - **Handler system** for unified execution
 - **Platform integration** for serverless deployment
 
-By understanding these core concepts, you can effectively navigate and extend the Lightyear integration platform.
+By understanding these core concepts, you can effectively navigate and extend the Unscrambled integration platform.

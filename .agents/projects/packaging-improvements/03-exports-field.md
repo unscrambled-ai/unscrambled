@@ -29,7 +29,7 @@ Only `lightyear` has the modern `exports` field:
 
 1. **ESM/CJS dual support** - `exports` is the modern way to specify both
 2. **TypeScript resolution** - Newer `moduleResolution` modes prefer `exports`
-3. **Subpath exports** - Enables `@runlightyear/sdk/testing` patterns
+3. **Subpath exports** - Enables `@unscrambled/sdk/testing` patterns
 4. **Encapsulation** - Prevents importing internal files
 
 ## Solution
@@ -39,7 +39,7 @@ Add `exports` field to all packages and configure tsup for dual format output.
 ### Package.json Changes
 
 ```json
-// packages/@runlightyear/sdk/package.json
+// packages/@unscrambled/sdk/package.json
 {
   "exports": {
     ".": {
@@ -62,7 +62,7 @@ Same pattern for hubspot, salesforce.
 Create `tsup.config.ts` in each package:
 
 ```typescript
-// packages/@runlightyear/sdk/tsup.config.ts
+// packages/@unscrambled/sdk/tsup.config.ts
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
@@ -113,7 +113,7 @@ Once established, can add subpath exports:
 
 Enables:
 ```typescript
-import { mockConnector } from '@runlightyear/sdk/testing';
+import { mockConnector } from '@unscrambled/sdk/testing';
 ```
 
 ## Benefits

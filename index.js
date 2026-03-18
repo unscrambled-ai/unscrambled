@@ -1,8 +1,4 @@
-// Minimal deployment using @runlightyear/sdk
-// This allows deploying "nothing" - an empty but valid deployment
-
-// Import the handler and deploy list helper from the SDK package
-const { handler, getDeployList } = require("@runlightyear/sdk");
+const { handler, getDeployList } = require("@unscrambled/sdk");
 
 // Load your integration code (adjust the path if your app lives elsewhere)
 require("./src");

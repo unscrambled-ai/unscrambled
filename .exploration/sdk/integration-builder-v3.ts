@@ -19,7 +19,7 @@ export class IntegrationBuilder {
   private collections: Record<string, Collection> = {};
 
   /**
-   * Use a built-in app provided by Lightyear
+   * Use a built-in app provided by Unscrambled
    */
   withApp(appName: string): this {
     this.app = {

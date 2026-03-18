@@ -5,11 +5,14 @@ jobs:
     if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 18
-      - run: npm install pnpm@8.15.3 -g
+          version: 8.15.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
       - run: pnpm install
       - run: pnpm run lint
       - run: pnpm run prettier:check
@@ -21,12 +24,21 @@ jobs:
   publish:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 18
-      - run: npm install pnpm@8.15.3 -g
+          version: 8.15.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
       - run: pnpm install
       - run: pnpm run lint
       - run: pnpm run prettier:check
@@ -39,16 +51,6 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          # This expects you to have a script called release which does a build for your packages and calls changeset publish
           publish: pnpm run changeset:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Popular action to deploy to GitHub Pages:
-      # Docs: https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-docusaurus
-      # - name: Deploy to GitHub Pages
-      #   uses: peaceiris/actions-gh-pages@v3
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     publish_dir: ./apps/docs/build
