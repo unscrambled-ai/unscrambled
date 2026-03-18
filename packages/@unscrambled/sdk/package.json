@@ -45,7 +45,11 @@
     "typescript": "^5.8.3",
     "vitest": "^3.1.3"
   },
-  "description": "TypeScript SDK for building integrations with Lightyear - the fastest and easiest way for developers to integrate web-based applications.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unscrambled-ai/unscrambled.git",
+    "directory": "packages/@unscrambled/sdk"
+  },
   "main": "dist/index.js",
   "module": "dist/index.js",
   "typings": "dist/index.d.ts",

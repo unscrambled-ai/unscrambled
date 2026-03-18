@@ -34,6 +34,11 @@
     "tsup": "^8.4.0",
     "typescript": "^5.8.3"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unscrambled-ai/unscrambled.git",
+    "directory": "packages/@unscrambled/hubspot"
+  },
   "main": "dist/index.js",
   "module": "dist/index.js",
   "typings": "dist/index.d.ts"
