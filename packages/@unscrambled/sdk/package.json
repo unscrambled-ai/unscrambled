@@ -35,7 +35,7 @@
     "@types/node": "^20.11.24",
     "@typescript-eslint/parser": "^8.32.1",
     "api-extractor-config": "workspace:*",
-    "esbuild": "^0.23.0",
+    "esbuild": "^0.25.0",
     "eslint": "^9.26.0",
     "eslint-config-custom": "*",
     "nodemon": "^2.0.19",
