@@ -35,7 +35,7 @@
     "open": "^8.4.2",
     "pako": "^2.1.0",
     "pusher-js": "^8.4.0",
-    "tar": "^6.2.1",
+    "tar": "^7.5.11",
     "terminal-kit": "^3.0.1",
     "tiny-invariant": "^1.3.1"
   },
@@ -52,7 +52,6 @@
     "@types/node-fetch": "^2.6.2",
     "@types/nodemon": "^1.19.2",
     "@types/pako": "^2.0.0",
-    "@types/tar": "^6.1.3",
     "@types/terminal-kit": "^2.5.0",
     "@typescript-eslint/parser": "^8.32.1",
     "api-extractor-config": "workspace:*",
