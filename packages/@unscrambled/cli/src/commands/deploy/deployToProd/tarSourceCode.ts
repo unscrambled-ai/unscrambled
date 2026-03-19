@@ -1,4 +1,4 @@
-import tar, { FileStat } from "tar";
+import tar from "tar";
 import { TEMP_TGZ_FILE } from "./constants";
 import { program } from "commander";
 
@@ -11,7 +11,7 @@ export default async function tarSourceCode(fileList: string[]) {
         gzip: true,
         file: TEMP_TGZ_FILE,
         prefix: "project",
-        filter(path: string, stat: FileStat): boolean {
+        filter(path: string): boolean {
           console.debug("Adding", path);
           return true;
         },
