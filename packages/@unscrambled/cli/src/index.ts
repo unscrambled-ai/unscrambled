@@ -28,7 +28,7 @@ dotenv.config();
 prepareConsole();
 
 program
-  .name("un")
+  .name("unscrambled")
   .description("Unscrambled CLI")
   .version(packageJson.version)
   .addCommand(create)

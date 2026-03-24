@@ -46,7 +46,7 @@ export default async function writeConfigFile(
         "Warning: OS keychain not available. API key stored in config file.\n"
       );
       terminal(
-        "For better security, install OS keychain support and run `un login` again.\n"
+        "For better security, install OS keychain support and run `unscrambled login` again.\n"
       );
     }
   } catch (error) {

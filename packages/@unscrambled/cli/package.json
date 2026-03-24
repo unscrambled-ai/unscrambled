@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "bin": {
-    "un": "./dist/index.js"
+    "unscrambled": "./dist/index.js"
   },
   "scripts": {
     "dev": "nodemon --exec \"npx tsup src/index.ts --dts\" --watch src --ext ts,js",

@@ -1159,7 +1159,7 @@ syncs
 
         terminal.bold("5. Recommendations:\n");
         terminal(
-          `   - Run 'un sync delta ${syncId} --model <modelName>' to preview what changes are pending\n`
+          `   - Run 'unscrambled sync delta ${syncId} --model <modelName>' to preview what changes are pending\n`
         );
         terminal(
           `   - Check if multiple integrations share the '${syncData.collection?.name}' collection\n`
@@ -1706,7 +1706,7 @@ syncs
               "  Tip: Stuck syncs may indicate the dev server disconnected.\n"
             );
             terminal.yellow(
-              "  Use 'un syncs cancel <syncId>' to cancel stuck syncs.\n"
+              "  Use 'unscrambled syncs cancel <syncId>' to cancel stuck syncs.\n"
             );
           } else {
             terminal.green("  None\n");
@@ -1837,7 +1837,7 @@ syncs
           if (result.syncId) {
             terminal(`Sync ID: ${result.syncId}\n`);
             terminal.gray(
-              `\nTip: Run 'un syncs watch ${result.syncId} -e ${envName}' to monitor progress\n`
+              `\nTip: Run 'unscrambled syncs watch ${result.syncId} -e ${envName}' to monitor progress\n`
             );
           }
           if (result.syncIds && result.syncIds.length > 0) {
@@ -1973,7 +1973,7 @@ syncs
         `No new syncs will be created. Existing syncs will complete.\n`
       );
       terminal.gray(
-        `Use 'un syncs scheduling:resume -e ${envName}' to resume.\n`
+        `Use 'unscrambled syncs scheduling:resume -e ${envName}' to resume.\n`
       );
     } catch (error) {
       terminal.red(
