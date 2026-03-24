@@ -1,6 +1,7 @@
 import { program } from "commander";
 import { terminal } from "terminal-kit";
 import { getApiKey } from "./getApiKey";
+import { isKeychainAvailable } from "./keychain";
 
 /**
  * Check if the user is authenticated and provide a helpful error message if not
@@ -15,6 +16,12 @@ export function requireAuth(): void {
     terminal.bold("To get started, run one of the following commands:\n");
     terminal.green("  un login\n");
     terminal.green("  un signup\n\n");
+
+    if (!isKeychainAvailable()) {
+      terminal.dim(
+        "Alternatively, set the UNSCRAMBLED_API_KEY environment variable.\n\n"
+      );
+    }
 
     program.error("", { exitCode: 1 });
   }

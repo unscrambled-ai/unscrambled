@@ -4,9 +4,9 @@ import { terminal } from "terminal-kit";
 import {
   readConfig,
   writeConfig,
-  getConfigFilePath,
   UnscrambledConfig,
 } from "../../shared/configManager";
+import { isKeychainAvailable, saveToKeychain } from "../../shared/keychain";
 
 export default async function writeConfigFile(
   {
@@ -20,21 +20,35 @@ export default async function writeConfigFile(
 
     const config: UnscrambledConfig = {
       ...existing,
-      apiKey: UNSCRAMBLED_API_KEY,
     };
+    delete config.apiKey;
 
-    // Only store baseUrl if it's not the default production URL
     if (baseUrl !== "https://app.unscrambled.ai") {
       config.baseUrl = baseUrl;
     } else {
       delete config.baseUrl;
     }
 
-    writeConfig(config);
+    if (isKeychainAvailable()) {
+      saveToKeychain(UNSCRAMBLED_API_KEY);
+      writeConfig(config);
 
-    res.setHeader("location", `${baseUrl}/cli-login/succeeded`);
-    res.end();
-    terminal(`Login successful, wrote credentials to ${getConfigFilePath()}\n`);
+      res.setHeader("location", `${baseUrl}/cli-login/succeeded`);
+      res.end();
+      terminal("Login successful, API key stored in system keychain\n");
+    } else {
+      config.apiKey = UNSCRAMBLED_API_KEY;
+      writeConfig(config);
+
+      res.setHeader("location", `${baseUrl}/cli-login/succeeded`);
+      res.end();
+      terminal.yellow(
+        "Warning: OS keychain not available. API key stored in config file.\n"
+      );
+      terminal(
+        "For better security, install OS keychain support and run `un login` again.\n"
+      );
+    }
   } catch (error) {
     res.setHeader("location", `${baseUrl}/cli-login/failed`);
     res.end();

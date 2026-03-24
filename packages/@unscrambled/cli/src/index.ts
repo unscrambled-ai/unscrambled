@@ -5,6 +5,7 @@ import packageJson from "../package.json";
 import { setLogDisplayLevel } from "./shared/setLogDisplayLevel";
 import { create } from "./commands/create";
 import { login, signup } from "./commands/login";
+import { logout } from "./commands/logout";
 import { dev } from "./commands/dev";
 import { deploy } from "./commands/deploy";
 import { prepareConsole } from "./logging";
@@ -33,6 +34,7 @@ program
   .addCommand(create)
   .addCommand(signup)
   .addCommand(login)
+  .addCommand(logout)
   .addCommand(build)
   .addCommand(dev)
   .addCommand(deploy)
