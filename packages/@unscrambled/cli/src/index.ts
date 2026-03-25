@@ -20,6 +20,7 @@ import { runs } from "./commands/run";
 import { integrations } from "./commands/integration";
 import { actions } from "./commands/action";
 import { envs } from "./commands/env";
+import { auth } from "./commands/auth";
 import { httpRequests } from "./commands/http-request";
 // import { test } from "./commands/test";
 
@@ -47,6 +48,7 @@ program
   .addCommand(integrations)
   .addCommand(actions)
   .addCommand(envs)
+  .addCommand(auth)
   .addCommand(httpRequests)
   .option("-d, --debug", "output extra debugging")
   .option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
