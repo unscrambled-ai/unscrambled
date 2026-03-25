@@ -38,6 +38,7 @@ describe("buildAppRequestPayload", () => {
   test("builds a request payload with query, headers, and json body", () => {
     expect(
       buildAppRequestPayload({
+        appName: "hubspot",
         method: "POST",
         path: "/crm/v3/objects/contacts",
         query: [{ key: "limit", value: "10" }],
@@ -46,18 +47,22 @@ describe("buildAppRequestPayload", () => {
         output: "json",
       })
     ).toEqual({
+      appName: "hubspot",
       method: "POST",
       path: "/crm/v3/objects/contacts",
       query: { limit: "10" },
-      headers: { "X-Test": "true" },
-      body: undefined,
-      json: { name: "Acme" },
+      headers: {
+        "X-Test": "true",
+        "Content-Type": "application/json",
+      },
+      body: '{"name":"Acme"}',
     });
   });
 
   test("rejects json and body together", () => {
     expect(() =>
       buildAppRequestPayload({
+        appName: "hubspot",
         method: "POST",
         path: "/crm/v3/objects/contacts",
         query: [],
@@ -72,6 +77,7 @@ describe("buildAppRequestPayload", () => {
   test("rejects invalid json", () => {
     expect(() =>
       buildAppRequestPayload({
+        appName: "hubspot",
         method: "POST",
         path: "/crm/v3/objects/contacts",
         query: [],
@@ -80,5 +86,17 @@ describe("buildAppRequestPayload", () => {
         output: "json",
       })
     ).toThrow("Invalid JSON provided to --json");
+  });
+
+  test("requires app name", () => {
+    expect(() =>
+      buildAppRequestPayload({
+        method: "GET",
+        path: "/objects/contacts",
+        query: [],
+        header: [],
+        output: "json",
+      })
+    ).toThrow("appName is required");
   });
 });

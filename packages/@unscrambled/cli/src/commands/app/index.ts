@@ -23,6 +23,7 @@ export interface AppRequestResponse {
 }
 
 type AppRequestOptions = {
+  appName?: string;
   env?: string;
   environment?: string;
   method: HttpMethod;
@@ -84,21 +85,26 @@ export function parseHeaderOption(
 }
 
 export function buildAppRequestPayload(options: AppRequestOptions): {
+  appName: string;
   method: HttpMethod;
   path: string;
   query?: Record<string, string>;
   headers?: Record<string, string>;
   body?: string;
-  json?: unknown;
 } {
+  if (!options.appName) {
+    throw new Error("appName is required");
+  }
+
   if (options.json && options.body) {
     throw new Error("Use either --json or --body, not both");
   }
 
-  let parsedJson: unknown;
+  let body = options.body;
   if (options.json) {
     try {
-      parsedJson = JSON.parse(options.json);
+      const parsedJson = JSON.parse(options.json);
+      body = JSON.stringify(parsedJson);
     } catch (error) {
       throw new Error(
         `Invalid JSON provided to --json: ${
@@ -119,13 +125,21 @@ export function buildAppRequestPayload(options: AppRequestOptions): {
         )
       : undefined;
 
+  if (
+    options.json &&
+    headers &&
+    !Object.keys(headers).some((key) => key.toLowerCase() === "content-type")
+  ) {
+    headers["Content-Type"] = "application/json";
+  }
+
   return {
+    appName: options.appName,
     method: options.method,
     path: options.path,
     query,
     headers,
-    body: options.body,
-    json: parsedJson,
+    body,
   };
 }
 
@@ -216,10 +230,13 @@ app
     try {
       const baseUrl = getBaseUrl();
       const apiKey = getApiKey();
-      const payload = buildAppRequestPayload(options);
+      const payload = buildAppRequestPayload({
+        ...options,
+        appName,
+      });
 
       const response = await fetch(
-        `${baseUrl}/api/v1/projects/default/envs/${envName}/apps/${appName}/request`,
+        `${baseUrl}/api/v1/projects/default/envs/${envName}/http-request`,
         {
           method: "POST",
           headers: {
@@ -234,6 +251,10 @@ app
         response,
         `request ${appName}`
       );
+      result.httpRequestId =
+        response.headers.get("x-http-request-id") ??
+        response.headers.get("X-Http-Request-Id") ??
+        undefined;
 
       if (options.output === "json") {
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
