@@ -16,6 +16,10 @@ export default async function writeConfigFile(
   res: ServerResponse
 ) {
   try {
+    if (!UNSCRAMBLED_API_KEY?.trim()) {
+      throw new Error("Login response did not include an API key");
+    }
+
     const existing = readConfig();
 
     const config: UnscrambledConfig = {

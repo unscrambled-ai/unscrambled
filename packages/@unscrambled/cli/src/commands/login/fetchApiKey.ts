@@ -2,6 +2,40 @@ import { program } from "commander";
 import { ServerResponse } from "http";
 import { terminal } from "terminal-kit";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function extractApiKeyFromLoginResponse(
+  payload: unknown
+): string | undefined {
+  if (!isRecord(payload)) {
+    return undefined;
+  }
+
+  const directApiKey =
+    payload.UNSCRAMBLED_API_KEY ??
+    payload.LIGHTYEAR_API_KEY ??
+    payload.apiKey;
+  if (typeof directApiKey === "string" && directApiKey.trim()) {
+    return directApiKey;
+  }
+
+  if (!isRecord(payload.data)) {
+    return undefined;
+  }
+
+  const nestedApiKey =
+    payload.data.UNSCRAMBLED_API_KEY ??
+    payload.data.LIGHTYEAR_API_KEY ??
+    payload.data.apiKey;
+  if (typeof nestedApiKey === "string" && nestedApiKey.trim()) {
+    return nestedApiKey;
+  }
+
+  return undefined;
+}
+
 export default async function fetchApiKey(
   baseUrl: string,
   code: string,
@@ -25,7 +59,12 @@ export default async function fetchApiKey(
       program.error("Error fetching api key");
     }
 
-    const { UNSCRAMBLED_API_KEY } = json;
+    const UNSCRAMBLED_API_KEY = extractApiKeyFromLoginResponse(json);
+    if (!UNSCRAMBLED_API_KEY) {
+      program.error(
+        "Error fetching api key: login response did not include an API key"
+      );
+    }
 
     return { UNSCRAMBLED_API_KEY };
   } catch (error) {
