@@ -6,9 +6,15 @@ import { program } from "commander";
 
 const POLL_INTERVAL_MS = 1000;
 
+export interface WaitUntilDeployFinishesOptions {
+  quiet?: boolean;
+  emitLogs?: boolean;
+}
+
 export default async function waitUntilDeployFinishes(
-  deployId: string
-): Promise<void> {
+  deployId: string,
+  options: WaitUntilDeployFinishesOptions = {}
+): Promise<DeployStatus> {
   let lastRedisEntryId: string | undefined;
   let isFinished = false;
 
@@ -41,7 +47,9 @@ export default async function waitUntilDeployFinishes(
         fromRedisEntryId: lastRedisEntryId,
       });
 
-      displayLogs(logsResponse.data.logs);
+      if (options.emitLogs !== false) {
+        displayLogs(logsResponse.data.logs);
+      }
 
       // Update cursor for next poll
       if (logsResponse.data.pagination?.lastRedisEntryId) {
@@ -58,28 +66,40 @@ export default async function waitUntilDeployFinishes(
   };
 
   // Initial poll
-  console.info("Waiting for deploy to finish...");
+  if (!options.quiet) {
+    console.info("Waiting for deploy to finish...");
+  }
   let status = await poll();
-  console.info(`Initial deploy status: ${status}`);
+  if (!options.quiet) {
+    console.info(`Initial deploy status: ${status}`);
+  }
 
   // Continue polling until deploy finishes
   while (!isFinished) {
     if (status === "SUCCEEDED") {
-      terminal.green("Deploy succeeded! 🚀\n");
+      if (!options.quiet) {
+        terminal.green("Deploy succeeded! 🚀\n");
+      }
       isFinished = true;
     } else if (status === "FAILED") {
-      terminal.red("Deploy failed 💥\n");
+      if (!options.quiet) {
+        terminal.red("Deploy failed 💥\n");
+      }
       program.error("Deploy failed", { exitCode: 1 });
     } else {
       // Wait before next poll
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
       const newStatus = await poll();
       if (newStatus !== status) {
-        console.info(`Deploy status changed: ${status} -> ${newStatus}`);
+        if (!options.quiet) {
+          console.info(`Deploy status changed: ${status} -> ${newStatus}`);
+        }
         status = newStatus;
       } else {
         status = newStatus;
       }
     }
   }
+
+  return status;
 }

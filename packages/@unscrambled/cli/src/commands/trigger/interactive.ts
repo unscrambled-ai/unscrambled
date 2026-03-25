@@ -121,18 +121,21 @@ export async function runInteractiveTrigger(
       `Triggering for all ${managedUsers.length} managed users in ${environment}...\n`
     );
 
-    const { success, error } = await triggerAction(selectedAction, {
+    const result = await triggerAction(selectedAction, {
       managedUserId: "ALL",
       environment,
     });
 
-    if (success) {
+    if (result.success) {
       terminal.green(
         `\n✓ Action triggered successfully for all managed users in ${environment}\n`
       );
+      if (result.runId) {
+        terminal(`Run ID: ${result.runId}\n`);
+      }
     } else {
       terminal.red(
-        `\n✗ Failed to trigger action for all managed users in ${environment}: ${error}\n`
+        `\n✗ Failed to trigger action for all managed users in ${environment}: ${result.error}\n`
       );
     }
   } else {
@@ -144,15 +147,18 @@ export async function runInteractiveTrigger(
       );
     }
 
-    const { success, error } = await triggerAction(selectedAction, {
+    const result = await triggerAction(selectedAction, {
       managedUserId,
       environment,
     });
 
-    if (success) {
+    if (result.success) {
       terminal.green(`\n✓ Action triggered successfully in ${environment}\n`);
+      if (result.runId) {
+        terminal(`Run ID: ${result.runId}\n`);
+      }
     } else {
-      terminal.red(`\n✗ Failed to trigger action: ${error}\n`);
+      terminal.red(`\n✗ Failed to trigger action: ${result.error}\n`);
     }
   }
 }

@@ -1,6 +1,7 @@
 import { getApiKey } from "./getApiKey";
 import { getBaseUrl } from "./getBaseUrl";
 import { getEnvName } from "./getEnvName";
+import { parseJsonResponse } from "./parseJsonResponse";
 
 export interface ManagedUserSummary {
   id: string;
@@ -12,11 +13,39 @@ export interface TriggerPayload {
   managedUserId?: string;
   managedUserExternalId?: string;
   environment?: string;
+  data?: unknown;
 }
 
-export interface TriggerActionResult {
-  success: boolean;
-  error?: string;
+type TriggerApiResponse = Record<string, unknown> & {
+  id?: string;
+  runId?: string;
+  status?: string;
+  message?: string;
+};
+
+export type TriggerActionResult =
+  | {
+      success: true;
+      runId?: string;
+      status?: string;
+      result: TriggerApiResponse;
+    }
+  | {
+      success: false;
+      error: string;
+      statusCode?: number;
+    };
+
+function getRunId(result: TriggerApiResponse): string | undefined {
+  if (typeof result.runId === "string") {
+    return result.runId;
+  }
+
+  if (typeof result.id === "string") {
+    return result.id;
+  }
+
+  return undefined;
 }
 
 export async function getManagedUsers(
@@ -57,17 +86,22 @@ export async function triggerAction(
   const envName = payload.environment ?? getEnvName();
   const apiKey = getApiKey();
 
-  const requestBody: Record<string, unknown> = {};
+  const requestBody: Record<string, unknown> = {
+    actionName,
+  };
   if (payload.managedUserId !== undefined) {
     requestBody.managedUserId = payload.managedUserId;
   }
   if (payload.managedUserExternalId !== undefined) {
     requestBody.managedUserExternalId = payload.managedUserExternalId;
   }
+  if (payload.data !== undefined) {
+    requestBody.data = payload.data;
+  }
 
   try {
     const response = await fetch(
-      `${baseUrl}/api/v1/projects/default/envs/${envName}/actions/${actionName}/trigger`,
+      `${baseUrl}/api/v1/projects/default/envs/${envName}/runs`,
       {
         method: "POST",
         headers: {
@@ -78,21 +112,27 @@ export async function triggerAction(
       }
     );
 
+    const result = (await parseJsonResponse(response, {
+      operationName: "trigger action",
+    })) as TriggerApiResponse;
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `Failed to trigger action: ${response.status} ${response.statusText}`
-      );
-      if (errorText) {
-        console.debug("Error response:", errorText);
-      }
       return {
         success: false,
-        error: `${response.status} ${response.statusText}`,
+        error:
+          typeof result.message === "string"
+            ? result.message
+            : `${response.status} ${response.statusText}`,
+        statusCode: response.status,
       };
     }
 
-    return { success: true };
+    return {
+      success: true,
+      runId: getRunId(result),
+      status: typeof result.status === "string" ? result.status : undefined,
+      result,
+    };
   } catch (error) {
     console.error("Error triggering action:", error);
     return { success: false, error: String(error) };

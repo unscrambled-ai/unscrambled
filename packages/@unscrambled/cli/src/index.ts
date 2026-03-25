@@ -54,7 +54,20 @@ program
   .addCommand(httpRequests)
   .option("-d, --debug", "output extra debugging")
   .option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
-  .addHelpText("beforeAll", largeLogo);
+  .addHelpText("beforeAll", largeLogo)
+  .addHelpText(
+    "after",
+    `
+Common workflows:
+  unscrambled dev
+  unscrambled auth list --env dev
+  unscrambled actions list --env prod
+  unscrambled actions trigger self --env dev --managed-user-id mu_123
+  unscrambled syncs trigger --env prod --integration hubspot --user ALL
+
+Run 'unscrambled <command> --help' for command-specific examples.
+`
+  );
 
 async function main() {
   const options = program.opts();

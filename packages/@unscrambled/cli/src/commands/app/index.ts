@@ -41,7 +41,12 @@ export const app = new Command("app")
     "after",
     `\nKnown services: ${getSupportedServices()
       .map((service) => service.name)
-      .join(", ")}\n`
+      .join(", ")}
+
+Examples:
+  unscrambled app request hubspot --env prod --path /crm/v3/objects/contacts --method GET
+  unscrambled app request salesforce --env prod --path /services/data/v60.0/sobjects/Account --method GET --output json
+`
   );
 
 function resolveEnvName(cliEnv?: string): string {

@@ -2,6 +2,10 @@ import { program } from "commander";
 import { ServerResponse } from "http";
 import { terminal } from "terminal-kit";
 
+function isJsonOutput(): boolean {
+  return process.env.UNSCRAMBLED_CLI_OUTPUT_FORMAT === "json";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -42,7 +46,9 @@ export default async function fetchApiKey(
   res: ServerResponse
 ) {
   try {
-    terminal("Fetching credentials\n");
+    if (!isJsonOutput()) {
+      terminal("Fetching credentials\n");
+    }
     const response = await fetch(`${baseUrl}/api/v1/cli-login/key`, {
       method: "POST",
       headers: {

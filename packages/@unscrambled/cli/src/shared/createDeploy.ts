@@ -9,22 +9,25 @@ export interface CreateDeployProps {
   envName?: "dev" | "prod";
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
   compiledCode: Buffer;
+  quiet?: boolean;
 }
 
 export default async function createDeploy(
   props: CreateDeployProps
 ): Promise<string> {
-  const { envName = getEnvName(), status, compiledCode } = props;
+  const { envName = getEnvName(), status, compiledCode, quiet } = props;
 
   const baseUrl = getBaseUrl();
   const apiKey = getApiKey();
 
   let response;
 
-  console.info(
-    `Creating deploy to ${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`
-  );
-  console.info(`Compiled code size: ${compiledCode.length} bytes`);
+  if (!quiet) {
+    console.info(
+      `Creating deploy to ${baseUrl}/api/v1/projects/default/envs/${envName}/deploys`
+    );
+    console.info(`Compiled code size: ${compiledCode.length} bytes`);
+  }
 
   try {
     response = await fetch(
@@ -47,7 +50,9 @@ export default async function createDeploy(
     throw error;
   }
 
-  console.info(`Deploy response status: ${response.status}`);
+  if (!quiet) {
+    console.info(`Deploy response status: ${response.status}`);
+  }
 
   if (response.ok) {
     const json = await parseJsonResponse(response, {

@@ -1,7 +1,13 @@
 import * as esbuild from "esbuild";
 
-export async function execBuild() {
-  console.info("Building");
+export interface ExecBuildOptions {
+  quiet?: boolean;
+}
+
+export async function execBuild(options: ExecBuildOptions = {}) {
+  if (!options.quiet) {
+    console.info("Building");
+  }
 
   const result = await esbuild.build({
     entryPoints: ["./index.js"],
@@ -14,10 +20,14 @@ export async function execBuild() {
     outdir: "build",
   });
 
-  console.debug("Build result", result);
+  if (!options.quiet) {
+    console.debug("Build result", result);
+  }
 
-  for (const warning of result.warnings) {
-    console.warn(warning);
+  if (!options.quiet) {
+    for (const warning of result.warnings) {
+      console.warn(warning);
+    }
   }
 
   for (const error of result.errors) {
@@ -25,8 +35,12 @@ export async function execBuild() {
   }
 
   if (result.errors.length === 0) {
-    console.info("Successful build");
+    if (!options.quiet) {
+      console.info("Successful build");
+    }
   } else {
     throw new Error("Build failed");
   }
+
+  return result;
 }

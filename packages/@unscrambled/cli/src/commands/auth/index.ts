@@ -6,9 +6,16 @@ import { prompt } from "enquirer";
 import open from "open";
 import { terminal } from "terminal-kit";
 
+import {
+  OutputFormat,
+  getEnvOption,
+  readStdin,
+  resolveEnvName,
+  writeError,
+  writeJson,
+} from "../../shared/commandUtils";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
-import { getEnvName } from "../../shared/getEnvName";
 import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
 import { requireAuth } from "../../shared/requireAuth";
 import {
@@ -17,7 +24,6 @@ import {
 } from "../../shared/services";
 
 type AppAuthType = "APIKEY" | "OAUTH2" | "BASIC" | string;
-type OutputFormat = "text" | "json";
 
 type AppListResponse = {
   apps: Array<{
@@ -62,19 +68,16 @@ export const auth = new Command("auth")
     "after",
     `\nKnown services: ${getSupportedServices()
       .map((service) => service.name)
-      .join(", ")}\n`
+      .join(", ")}
+
+Examples:
+  unscrambled auth list --env dev
+  unscrambled auth add hubspot --env prod
+  unscrambled auth add salesforce --env prod --api-key "$SALESFORCE_API_KEY"
+  cat api-key.txt | unscrambled auth add hubspot --env prod --stdin
+  unscrambled auth remove hubspot --env prod
+`
   );
-
-function resolveEnvName(cliEnv?: string): string {
-  if (cliEnv) return cliEnv;
-  const globalEnv = program.opts().env;
-  if (globalEnv) return globalEnv;
-  return getEnvName();
-}
-
-function getEnvOption(options: any): string | undefined {
-  return options?.env ?? options?.environment;
-}
 
 function getRequiredApiKey(): string {
   const apiKey = getApiKey();
@@ -322,15 +325,30 @@ async function authorizeApiKeyService(
   envName: string,
   serviceName: string,
   serviceTitle: string,
-  authName: string
+  authName: string,
+  options: {
+    apiKey?: string;
+    stdin?: boolean;
+  }
 ): Promise<void> {
-  const answers = (await prompt({
-    type: "password",
-    name: "apiKey",
-    message: `Enter your ${serviceTitle} API key`,
-  })) as { apiKey?: string };
+  if (options.apiKey && options.stdin) {
+    throw new Error("Use either --api-key or --stdin, not both.");
+  }
 
-  const apiKey = answers.apiKey?.trim();
+  let apiKey = options.apiKey?.trim();
+  if (!apiKey && options.stdin) {
+    apiKey = (await readStdin()).trim();
+  }
+
+  if (!apiKey) {
+    const answers = (await prompt({
+      type: "password",
+      name: "apiKey",
+      message: `Enter your ${serviceTitle} API key`,
+    })) as { apiKey?: string };
+    apiKey = answers.apiKey?.trim();
+  }
+
   if (!apiKey) {
     throw new Error("API key is required");
   }
@@ -370,10 +388,17 @@ auth
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
+  .addOption(new Option("--api-key <value>", "API key for API-key based services"))
+  .addOption(new Option("--stdin", "Read API key from stdin"))
   .action(
     async (
       rawServiceName: string,
-      options: { env?: string; environment?: string }
+      options: {
+        env?: string;
+        environment?: string;
+        apiKey?: string;
+        stdin?: boolean;
+      }
     ) => {
       requireAuth();
 
@@ -403,7 +428,8 @@ auth
             envName,
             serviceName,
             app.title,
-            authName
+            authName,
+            options
           );
           return;
         }
@@ -412,9 +438,7 @@ auth
           `${app.title} uses unsupported auth type '${app.authType}' for this command.`
         );
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }
@@ -462,7 +486,7 @@ auth
           .sort((a, b) => a.service.localeCompare(b.service));
 
         if (options.output === "json") {
-          process.stdout.write(`${JSON.stringify({ auths }, null, 2)}\n`);
+          writeJson({ auths });
           return;
         }
 
@@ -481,9 +505,7 @@ auth
           terminal(`\n`);
         }
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }
@@ -540,9 +562,7 @@ auth
 
         terminal.green(`${app.title} credentials removed from ${envName}.\n`);
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }
