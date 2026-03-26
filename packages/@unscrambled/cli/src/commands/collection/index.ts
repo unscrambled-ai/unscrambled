@@ -463,7 +463,9 @@ collections
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
   .addOption(new Option("--yes", "Skip confirmation prompt"))
-  .addOption(new Option("--dry-run", "Preview the reset without making changes"))
+  .addOption(
+    new Option("--dry-run", "Preview the reset without making changes")
+  )
   .addOption(new Option("-f, --force", "Deprecated alias for --yes").hideHelp())
   .action(
     async (
@@ -574,7 +576,9 @@ collections
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
   .addOption(new Option("--yes", "Skip confirmation prompt"))
-  .addOption(new Option("--dry-run", "Preview the clear without making changes"))
+  .addOption(
+    new Option("--dry-run", "Preview the clear without making changes")
+  )
   .addOption(new Option("-f, --force", "Deprecated alias for --yes").hideHelp())
   .action(
     async (

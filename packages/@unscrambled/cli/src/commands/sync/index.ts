@@ -1461,7 +1461,9 @@ syncs
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
   .addOption(new Option("--yes", "Skip confirmation prompt"))
-  .addOption(new Option("--dry-run", "Preview the cancellation without making changes"))
+  .addOption(
+    new Option("--dry-run", "Preview the cancellation without making changes")
+  )
   .addOption(new Option("-f, --force", "Deprecated alias for --yes").hideHelp())
   .action(
     async (
@@ -1807,7 +1809,9 @@ syncs
         }
 
         writeInfo(
-          `Triggering ${options.type ?? "auto"} sync for ${options.integration}...`,
+          `Triggering ${options.type ?? "auto"} sync for ${
+            options.integration
+          }...`,
           options
         );
 
@@ -1912,7 +1916,9 @@ syncs
                 if (sync.status === "SUCCEEDED") {
                   terminal.green(`Sync completed successfully!\n`);
                 } else if (sync.status === "FAILED") {
-                  terminal.red(`Sync failed: ${sync.error ?? "unknown error"}\n`);
+                  terminal.red(
+                    `Sync failed: ${sync.error ?? "unknown error"}\n`
+                  );
                 } else {
                   terminal.yellow(`Sync was canceled\n`);
                 }
@@ -1944,7 +1950,10 @@ syncs
           writeJson(result);
         }
       } catch (error) {
-        writeError(error instanceof Error ? error.message : String(error), options);
+        writeError(
+          error instanceof Error ? error.message : String(error),
+          options
+        );
         process.exitCode = 1;
       }
     }

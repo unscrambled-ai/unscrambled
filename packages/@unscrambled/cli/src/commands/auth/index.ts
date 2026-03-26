@@ -16,7 +16,10 @@ import {
 } from "../../shared/commandUtils";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
-import { checkResponseOk, parseJsonResponse } from "../../shared/parseJsonResponse";
+import {
+  checkResponseOk,
+  parseJsonResponse,
+} from "../../shared/parseJsonResponse";
 import { requireAuth } from "../../shared/requireAuth";
 import {
   getSupportedService,
@@ -193,7 +196,10 @@ async function createOAuthCallbackServer(serviceTitle: string): Promise<{
   });
 
   const server = createServer((req, res) => {
-    const requestUrl = new URL(req.url ?? "/", redirectUrl || "http://127.0.0.1");
+    const requestUrl = new URL(
+      req.url ?? "/",
+      redirectUrl || "http://127.0.0.1"
+    );
 
     if (requestUrl.pathname === "/favicon.ico") {
       res.statusCode = 204;
@@ -306,7 +312,9 @@ async function authorizeOAuthService(
     );
 
     if (!data.authRequestUrl) {
-      throw new Error(`Authorize ${serviceName} failed: missing authRequestUrl`);
+      throw new Error(
+        `Authorize ${serviceName} failed: missing authRequestUrl`
+      );
     }
 
     terminal(`Opening your browser to connect ${serviceTitle}\n`);
@@ -388,7 +396,9 @@ auth
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
-  .addOption(new Option("--api-key <value>", "API key for API-key based services"))
+  .addOption(
+    new Option("--api-key <value>", "API key for API-key based services")
+  )
   .addOption(new Option("--stdin", "Read API key from stdin"))
   .action(
     async (
@@ -419,7 +429,12 @@ auth
         const authName = resolveAuthName(app.auths);
 
         if (app.authType === "OAUTH2") {
-          await authorizeOAuthService(envName, serviceName, app.title, authName);
+          await authorizeOAuthService(
+            envName,
+            serviceName,
+            app.title,
+            authName
+          );
           return;
         }
 

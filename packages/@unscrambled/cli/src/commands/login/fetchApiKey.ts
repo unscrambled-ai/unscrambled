@@ -18,9 +18,7 @@ export function extractApiKeyFromLoginResponse(
   }
 
   const directApiKey =
-    payload.UNSCRAMBLED_API_KEY ??
-    payload.LIGHTYEAR_API_KEY ??
-    payload.apiKey;
+    payload.UNSCRAMBLED_API_KEY ?? payload.LIGHTYEAR_API_KEY ?? payload.apiKey;
   if (typeof directApiKey === "string" && directApiKey.trim()) {
     return directApiKey;
   }

@@ -39,138 +39,143 @@ Examples:
   unscrambled trigger send-email --env prod --all-managed-users --output json
 `
   )
-  .action(async (actionName, options: {
-    managedUserId?: string;
-    managedUserExternalId?: string;
-    allManagedUsers?: boolean;
-    interactive?: boolean;
-    env?: string;
-    output?: OutputFormat;
-  }) => {
-    requireAuth();
+  .action(
+    async (
+      actionName,
+      options: {
+        managedUserId?: string;
+        managedUserExternalId?: string;
+        allManagedUsers?: boolean;
+        interactive?: boolean;
+        env?: string;
+        output?: OutputFormat;
+      }
+    ) => {
+      requireAuth();
 
-    const globalOptions = program.opts();
-    if (globalOptions.debug) {
-      setLogDisplayLevel("DEBUG");
-      prepareConsole();
-      console.debug("Outputting debug information");
-    }
+      const globalOptions = program.opts();
+      if (globalOptions.debug) {
+        setLogDisplayLevel("DEBUG");
+        prepareConsole();
+        console.debug("Outputting debug information");
+      }
 
-    const resolvedAction = actionName || DEFAULT_ACTION;
-    const {
-      managedUserId,
-      managedUserExternalId,
-      allManagedUsers,
-      interactive,
-      env,
-    } = options;
+      const resolvedAction = actionName || DEFAULT_ACTION;
+      const {
+        managedUserId,
+        managedUserExternalId,
+        allManagedUsers,
+        interactive,
+        env,
+      } = options;
 
-    let environment: string;
-    try {
-      environment = resolveEnvName(env);
-    } catch (error) {
-      writeError(
-        error instanceof Error ? error.message : String(error),
-        options
-      );
-      process.exitCode = 1;
-      return;
-    }
-
-    if (interactive) {
-      await runInteractiveTrigger(environment);
-      return;
-    }
-
-    const selectionCount = [
-      managedUserId,
-      managedUserExternalId,
-      allManagedUsers ? "ALL" : undefined,
-    ].filter(Boolean).length;
-
-    if (selectionCount > 1) {
-      writeError(
-        "Specify only one of --managed-user-id, --managed-user-external-id, or --all-managed-users.",
-        options
-      );
-      process.exitCode = 1;
-      return;
-    }
-
-    const payload: TriggerPayload = { environment };
-    const scopeParts: string[] = [`env '${environment}'`];
-
-    if (allManagedUsers) {
-      payload.managedUserId = "ALL";
-      scopeParts.push("all managed users");
-    } else if (managedUserId) {
-      payload.managedUserId = managedUserId;
-      scopeParts.push(`managed user '${managedUserId}'`);
-    } else if (managedUserExternalId) {
-      const managedUsers = await getManagedUsers(environment);
-      const user = managedUsers.find(
-        (u) => u.externalId === String(managedUserExternalId)
-      );
-
-      if (!user) {
+      let environment: string;
+      try {
+        environment = resolveEnvName(env);
+      } catch (error) {
         writeError(
-          `Managed user with external id '${managedUserExternalId}' not found.`,
+          error instanceof Error ? error.message : String(error),
           options
         );
         process.exitCode = 1;
         return;
       }
 
-      payload.managedUserId = user.id;
-      payload.managedUserExternalId = user.externalId;
+      if (interactive) {
+        await runInteractiveTrigger(environment);
+        return;
+      }
+
+      const selectionCount = [
+        managedUserId,
+        managedUserExternalId,
+        allManagedUsers ? "ALL" : undefined,
+      ].filter(Boolean).length;
+
+      if (selectionCount > 1) {
+        writeError(
+          "Specify only one of --managed-user-id, --managed-user-external-id, or --all-managed-users.",
+          options
+        );
+        process.exitCode = 1;
+        return;
+      }
+
+      const payload: TriggerPayload = { environment };
+      const scopeParts: string[] = [`env '${environment}'`];
+
+      if (allManagedUsers) {
+        payload.managedUserId = "ALL";
+        scopeParts.push("all managed users");
+      } else if (managedUserId) {
+        payload.managedUserId = managedUserId;
+        scopeParts.push(`managed user '${managedUserId}'`);
+      } else if (managedUserExternalId) {
+        const managedUsers = await getManagedUsers(environment);
+        const user = managedUsers.find(
+          (u) => u.externalId === String(managedUserExternalId)
+        );
+
+        if (!user) {
+          writeError(
+            `Managed user with external id '${managedUserExternalId}' not found.`,
+            options
+          );
+          process.exitCode = 1;
+          return;
+        }
+
+        payload.managedUserId = user.id;
+        payload.managedUserExternalId = user.externalId;
+        writeInfo(
+          `Resolved managed user external id '${managedUserExternalId}' to managed user id '${user.id}'.`,
+          options
+        );
+        scopeParts.push(`managed user '${user.id}' (${user.externalId})`);
+      }
+
+      if (!payload.managedUserId) {
+        writeError(
+          "No managed user specified. Use --managed-user-id, --managed-user-external-id, --all-managed-users, or --interactive.",
+          options
+        );
+        process.exitCode = 1;
+        return;
+      }
+
+      const scopeDescription =
+        scopeParts.length > 0 ? ` for ${scopeParts.join(" and ")}` : "";
+
       writeInfo(
-        `Resolved managed user external id '${managedUserExternalId}' to managed user id '${user.id}'.`,
+        `Triggering action '${resolvedAction}'${scopeDescription}...`,
         options
       );
-      scopeParts.push(`managed user '${user.id}' (${user.externalId})`);
-    }
 
-    if (!payload.managedUserId) {
-      writeError(
-        "No managed user specified. Use --managed-user-id, --managed-user-external-id, --all-managed-users, or --interactive.",
+      const response = await triggerAction(resolvedAction, payload);
+
+      if (!response.success) {
+        writeError(
+          `Failed to trigger action '${resolvedAction}'${scopeDescription}: ${response.error}`,
+          options
+        );
+        process.exitCode = 1;
+        return;
+      }
+
+      if (options.output === "json") {
+        writeJson(response.result);
+        return;
+      }
+
+      writeSuccess(
+        `Action '${resolvedAction}' triggered successfully${scopeDescription}`,
         options
       );
-      process.exitCode = 1;
-      return;
+      if (response.runId) {
+        terminal(`Run ID: ${response.runId}\n`);
+      }
+      if (response.status) {
+        terminal(`Status: ${response.status}\n`);
+      }
     }
-
-    const scopeDescription =
-      scopeParts.length > 0 ? ` for ${scopeParts.join(" and ")}` : "";
-
-    writeInfo(
-      `Triggering action '${resolvedAction}'${scopeDescription}...`,
-      options
-    );
-
-    const response = await triggerAction(resolvedAction, payload);
-
-    if (!response.success) {
-      writeError(
-        `Failed to trigger action '${resolvedAction}'${scopeDescription}: ${response.error}`,
-        options
-      );
-      process.exitCode = 1;
-      return;
-    }
-
-    if (options.output === "json") {
-      writeJson(response.result);
-      return;
-    }
-
-    writeSuccess(
-      `Action '${resolvedAction}' triggered successfully${scopeDescription}`,
-      options
-    );
-    if (response.runId) {
-      terminal(`Run ID: ${response.runId}\n`);
-    }
-    if (response.status) {
-      terminal(`Status: ${response.status}\n`);
-    }
-  });
+  );

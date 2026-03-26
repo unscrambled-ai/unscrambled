@@ -22,15 +22,15 @@ Examples:
 `
   )
   .action(async (options: { output: "text" | "json" }) => {
-  const globalOptions = program.opts();
-  if (globalOptions.debug) {
-    setLogDisplayLevel("DEBUG");
-    prepareConsole();
-    console.debug("Outputting debug information");
-  }
+    const globalOptions = program.opts();
+    if (globalOptions.debug) {
+      setLogDisplayLevel("DEBUG");
+      prepareConsole();
+      console.debug("Outputting debug information");
+    }
 
-  await execBuild({ quiet: options.output === "json" });
-  if (options.output === "json") {
-    writeJson({ status: "SUCCEEDED" });
-  }
-});
+    await execBuild({ quiet: options.output === "json" });
+    if (options.output === "json") {
+      writeJson({ status: "SUCCEEDED" });
+    }
+  });

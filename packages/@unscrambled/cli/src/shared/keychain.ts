@@ -45,7 +45,9 @@ export function saveToKeychain(apiKey: string): void {
   switch (os.platform()) {
     case "darwin": {
       // -U flag = update if entry already exists (no need to delete first)
-      const command = `add-generic-password -U -s ${shellQuote(SERVICE)} -a ${shellQuote(ACCOUNT)} -w ${shellQuote(encoded)}\n`;
+      const command = `add-generic-password -U -s ${shellQuote(
+        SERVICE
+      )} -a ${shellQuote(ACCOUNT)} -w ${shellQuote(encoded)}\n`;
       execSync("security -i", {
         input: command,
         stdio: ["pipe", "pipe", "pipe"],
@@ -55,7 +57,9 @@ export function saveToKeychain(apiKey: string): void {
     }
     case "linux": {
       execSync(
-        `secret-tool store --label=${shellQuote(SERVICE)} service ${shellQuote(SERVICE)} account ${shellQuote(ACCOUNT)}`,
+        `secret-tool store --label=${shellQuote(SERVICE)} service ${shellQuote(
+          SERVICE
+        )} account ${shellQuote(ACCOUNT)}`,
         {
           input: encoded,
           stdio: ["pipe", "pipe", "pipe"],
@@ -65,10 +69,10 @@ export function saveToKeychain(apiKey: string): void {
       break;
     }
     case "win32": {
-      execSync(
-        `cmdkey /generic:${SERVICE} /user:${ACCOUNT} /pass:${encoded}`,
-        { stdio: "pipe", timeout: TIMEOUT_MS }
-      );
+      execSync(`cmdkey /generic:${SERVICE} /user:${ACCOUNT} /pass:${encoded}`, {
+        stdio: "pipe",
+        timeout: TIMEOUT_MS,
+      });
       break;
     }
   }
@@ -85,13 +89,17 @@ export function loadFromKeychain(): string | undefined {
     switch (os.platform()) {
       case "darwin":
         raw = execSync(
-          `security find-generic-password -s ${shellQuote(SERVICE)} -a ${shellQuote(ACCOUNT)} -w`,
+          `security find-generic-password -s ${shellQuote(
+            SERVICE
+          )} -a ${shellQuote(ACCOUNT)} -w`,
           { stdio: "pipe", encoding: "utf8", timeout: TIMEOUT_MS }
         ).trim();
         break;
       case "linux":
         raw = execSync(
-          `secret-tool lookup service ${shellQuote(SERVICE)} account ${shellQuote(ACCOUNT)}`,
+          `secret-tool lookup service ${shellQuote(
+            SERVICE
+          )} account ${shellQuote(ACCOUNT)}`,
           { stdio: "pipe", encoding: "utf8", timeout: TIMEOUT_MS }
         ).trim();
         break;
@@ -109,10 +117,9 @@ export function loadFromKeychain(): string | undefined {
     if (!raw) return undefined;
 
     if (raw.startsWith(ENCODING_PREFIX)) {
-      return Buffer.from(
-        raw.slice(ENCODING_PREFIX.length),
-        "base64"
-      ).toString("utf8");
+      return Buffer.from(raw.slice(ENCODING_PREFIX.length), "base64").toString(
+        "utf8"
+      );
     }
 
     // Plain value — written before encoding was introduced, or on a
@@ -128,13 +135,17 @@ export function deleteFromKeychain(): boolean {
     switch (os.platform()) {
       case "darwin":
         execSync(
-          `security delete-generic-password -s ${shellQuote(SERVICE)} -a ${shellQuote(ACCOUNT)}`,
+          `security delete-generic-password -s ${shellQuote(
+            SERVICE
+          )} -a ${shellQuote(ACCOUNT)}`,
           { stdio: "pipe", timeout: TIMEOUT_MS }
         );
         return true;
       case "linux":
         execSync(
-          `secret-tool clear service ${shellQuote(SERVICE)} account ${shellQuote(ACCOUNT)}`,
+          `secret-tool clear service ${shellQuote(
+            SERVICE
+          )} account ${shellQuote(ACCOUNT)}`,
           { stdio: "pipe", timeout: TIMEOUT_MS }
         );
         return true;

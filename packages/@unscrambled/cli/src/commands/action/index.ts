@@ -20,9 +20,8 @@ import {
 } from "../../shared/parseJsonResponse";
 import { triggerAction } from "../../shared/triggerAction";
 
-export const actions = new Command("actions").description(
-  "Manage and trigger actions"
-)
+export const actions = new Command("actions")
+  .description("Manage and trigger actions")
   .addHelpText(
     "after",
     `
@@ -133,21 +132,14 @@ actions
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
-  .addOption(
-    new Option(
-      "--managed-user-id <id>",
-      "Managed user ID"
-    )
-  )
+  .addOption(new Option("--managed-user-id <id>", "Managed user ID"))
   .addOption(
     new Option(
       "-m, --managed-user-external-id <id>",
       "Managed user external ID"
     )
   )
-  .addOption(
-    new Option("--all-managed-users", "Trigger for all managed users")
-  )
+  .addOption(new Option("--all-managed-users", "Trigger for all managed users"))
   .addOption(new Option("-d, --data <json>", "JSON data to pass to the action"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
@@ -173,7 +165,10 @@ actions
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        writeError(error instanceof Error ? error.message : String(error), options);
+        writeError(
+          error instanceof Error ? error.message : String(error),
+          options
+        );
         process.exitCode = 1;
         return;
       }
@@ -246,7 +241,10 @@ actions
           }
         }
       } catch (error) {
-        writeError(error instanceof Error ? error.message : String(error), options);
+        writeError(
+          error instanceof Error ? error.message : String(error),
+          options
+        );
         process.exitCode = 1;
       }
     }

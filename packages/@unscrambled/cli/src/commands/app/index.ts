@@ -56,7 +56,10 @@ function resolveEnvName(cliEnv?: string): string {
   return getEnvName();
 }
 
-function getEnvOption(options: { env?: string; environment?: string }): string | undefined {
+function getEnvOption(options: {
+  env?: string;
+  environment?: string;
+}): string | undefined {
   return options.env ?? options.environment;
 }
 
@@ -79,13 +82,17 @@ function parseKeyValuePair(
   return { key, value };
 }
 
-export function parseQueryOption(input: string): { key: string; value: string } {
+export function parseQueryOption(input: string): {
+  key: string;
+  value: string;
+} {
   return parseKeyValuePair(input, "=", "--query");
 }
 
-export function parseHeaderOption(
-  input: string
-): { key: string; value: string } {
+export function parseHeaderOption(input: string): {
+  key: string;
+  value: string;
+} {
   return parseKeyValuePair(input, ":", "--header");
 }
 
@@ -121,7 +128,9 @@ export function buildAppRequestPayload(options: AppRequestOptions): {
 
   const query =
     options.query.length > 0
-      ? Object.fromEntries(options.query.map((entry) => [entry.key, entry.value]))
+      ? Object.fromEntries(
+          options.query.map((entry) => [entry.key, entry.value])
+        )
       : undefined;
   const headers =
     options.header.length > 0
@@ -192,7 +201,9 @@ app
       .choices(["GET", "POST", "PUT", "PATCH", "DELETE"])
       .default("GET")
   )
-  .addOption(new Option("--path <path>", "Provider API path").makeOptionMandatory())
+  .addOption(
+    new Option("--path <path>", "Provider API path").makeOptionMandatory()
+  )
   .option(
     "--query <key=value>",
     "Query parameter, can be repeated",

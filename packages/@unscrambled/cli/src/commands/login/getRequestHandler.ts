@@ -26,7 +26,10 @@ export default function getRequestHandler(baseUrl: string) {
     }
 
     const { UNSCRAMBLED_API_KEY } = await fetchApiKey(baseUrl, code, res);
-    const storage = await writeConfigFile({ UNSCRAMBLED_API_KEY, baseUrl }, res);
+    const storage = await writeConfigFile(
+      { UNSCRAMBLED_API_KEY, baseUrl },
+      res
+    );
 
     if (isJsonOutput()) {
       writeJson({
