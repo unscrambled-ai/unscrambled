@@ -1,0 +1,15 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index b9f3c6fdf6dfc7bdafded5d62f38cc08474d0000..fd82d7acbebd5fb7a2999838c47aaccb4c9c2525 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -198,4 +198,10 @@ function expand_(str, max, isTop) {
+     }
+     return expansions;
+ }
++// Preserve the legacy CommonJS callable export shape expected by minimatch 3.
++module.exports = Object.assign(expand, {
++    expand,
++    EXPANSION_MAX: exports.EXPANSION_MAX,
++    default: expand,
++});
+ //# sourceMappingURL=index.js.map

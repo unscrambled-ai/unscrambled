@@ -19,14 +19,14 @@
     "@unscrambled/sdk": ">=0.1.0 <1.0.0"
   },
   "devDependencies": {
-    "@unscrambled/sdk": "workspace:*",
     "@microsoft/api-extractor": "^7.38.5",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.24",
     "@types/nodemon": "^1.19.2",
-    "@typescript-eslint/parser": "^8.32.1",
+    "@typescript-eslint/parser": "^8.57.2",
+    "@unscrambled/sdk": "workspace:*",
     "api-extractor-config": "workspace:*",
-    "eslint": "^9.26.0",
+    "eslint": "^10.1.0",
     "eslint-config-custom": "workspace:*",
     "nodemon": "^2.0.19",
     "tsconfig": "workspace:*",
