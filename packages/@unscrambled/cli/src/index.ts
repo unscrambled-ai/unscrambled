@@ -22,6 +22,7 @@ import { actions } from "./commands/action";
 import { envs } from "./commands/env";
 import { auth } from "./commands/auth";
 import { app } from "./commands/app";
+import { customApp } from "./commands/custom-app";
 import { httpRequests } from "./commands/http-request";
 // import { test } from "./commands/test";
 
@@ -51,6 +52,7 @@ program
   .addCommand(envs)
   .addCommand(auth)
   .addCommand(app)
+  .addCommand(customApp)
   .addCommand(httpRequests)
   .option("-d, --debug", "output extra debugging")
   .option("-e, --env <envName>", "Environment name (e.g. dev, prod)")

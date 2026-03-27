@@ -1,26 +1,24 @@
-import { Command, Option, program } from "commander";
+import { Command, Option } from "commander";
 import { terminal } from "terminal-kit";
 
+import {
+  getEnvOption,
+  resolveEnvName,
+} from "../../shared/commandUtils";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
-import { getEnvName } from "../../shared/getEnvName";
 import {
-  checkResponseOk,
-  parseJsonResponse,
-} from "../../shared/parseJsonResponse";
+  type AuthorizedRequestResponse as AppRequestResponse,
+  type HttpMethod,
+  type HttpRequestOutputFormat as OutputFormat,
+  buildAuthorizedRequestPayload,
+  formatResponseBody,
+  parseHeaderOption,
+  parseQueryOption,
+  readApiResponse,
+} from "../../shared/httpRequestCommand";
 import { requireAuth } from "../../shared/requireAuth";
 import { getSupportedServices } from "../../shared/services";
-
-type OutputFormat = "text" | "json";
-type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
-export interface AppRequestResponse {
-  status: number;
-  statusText: string;
-  headers?: Record<string, string>;
-  data?: unknown;
-  httpRequestId?: string;
-}
 
 type AppRequestOptions = {
   appName?: string;
@@ -35,66 +33,7 @@ type AppRequestOptions = {
   output: OutputFormat;
 };
 
-export const app = new Command("app")
-  .description("Inspect apps and make authorized app requests")
-  .addHelpText(
-    "after",
-    `\nKnown services: ${getSupportedServices()
-      .map((service) => service.name)
-      .join(", ")}
-
-Examples:
-  unscrambled app request hubspot --env prod --path /crm/v3/objects/contacts --method GET
-  unscrambled app request salesforce --env prod --path /services/data/v60.0/sobjects/Account --method GET --output json
-`
-  );
-
-function resolveEnvName(cliEnv?: string): string {
-  if (cliEnv) return cliEnv;
-  const globalEnv = program.opts().env;
-  if (globalEnv) return globalEnv;
-  return getEnvName();
-}
-
-function getEnvOption(options: {
-  env?: string;
-  environment?: string;
-}): string | undefined {
-  return options.env ?? options.environment;
-}
-
-function parseKeyValuePair(
-  input: string,
-  separator: string,
-  label: string
-): { key: string; value: string } {
-  const separatorIndex = input.indexOf(separator);
-  if (separatorIndex <= 0) {
-    throw new Error(`${label} must be in the form key${separator}value`);
-  }
-
-  const key = input.slice(0, separatorIndex).trim();
-  const value = input.slice(separatorIndex + separator.length).trim();
-  if (!key) {
-    throw new Error(`${label} key cannot be empty`);
-  }
-
-  return { key, value };
-}
-
-export function parseQueryOption(input: string): {
-  key: string;
-  value: string;
-} {
-  return parseKeyValuePair(input, "=", "--query");
-}
-
-export function parseHeaderOption(input: string): {
-  key: string;
-  value: string;
-} {
-  return parseKeyValuePair(input, ":", "--header");
-}
+export { parseHeaderOption, parseQueryOption };
 
 export function buildAppRequestPayload(options: AppRequestOptions): {
   appName: string;
@@ -108,86 +47,29 @@ export function buildAppRequestPayload(options: AppRequestOptions): {
     throw new Error("appName is required");
   }
 
-  if (options.json && options.body) {
-    throw new Error("Use either --json or --body, not both");
-  }
-
-  let body = options.body;
-  if (options.json) {
-    try {
-      const parsedJson = JSON.parse(options.json);
-      body = JSON.stringify(parsedJson);
-    } catch (error) {
-      throw new Error(
-        `Invalid JSON provided to --json: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    }
-  }
-
-  const query =
-    options.query.length > 0
-      ? Object.fromEntries(
-          options.query.map((entry) => [entry.key, entry.value])
-        )
-      : undefined;
-  const headers =
-    options.header.length > 0
-      ? Object.fromEntries(
-          options.header.map((entry) => [entry.key, entry.value])
-        )
-      : undefined;
-
-  if (
-    options.json &&
-    headers &&
-    !Object.keys(headers).some((key) => key.toLowerCase() === "content-type")
-  ) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  return {
-    appName: options.appName,
-    method: options.method,
-    path: options.path,
-    query,
-    headers,
-    body,
+  return buildAuthorizedRequestPayload(options) as {
+    appName: string;
+    method: HttpMethod;
+    path: string;
+    query?: Record<string, string>;
+    headers?: Record<string, string>;
+    body?: string;
   };
 }
 
-function formatResponseBody(data: unknown): string {
-  if (data == null) {
-    return "";
-  }
+export const app = new Command("app")
+  .description("Inspect apps and make authorized app requests")
+  .addHelpText(
+    "after",
+    `\nKnown services: ${getSupportedServices()
+      .map((service) => service.name)
+      .join(", ")}
 
-  if (typeof data === "string") {
-    return data;
-  }
-
-  return JSON.stringify(data, null, 2);
-}
-
-async function readApiResponse<T>(
-  response: Response,
-  operationName: string
-): Promise<T> {
-  const data = (await parseJsonResponse(response, {
-    operationName,
-  })) as Record<string, unknown>;
-
-  if (!response.ok) {
-    checkResponseOk(response, operationName);
-    const message =
-      typeof data?.message === "string"
-        ? data.message
-        : `${operationName} failed: HTTP ${response.status} ${response.statusText}`;
-    throw new Error(message);
-  }
-
-  return data as T;
-}
+Examples:
+  unscrambled app request hubspot --env prod --path /crm/v3/objects/contacts --method GET
+  unscrambled app request salesforce --env prod --path /services/data/v60.0/sobjects/Account --method GET --output json
+`
+  );
 
 app
   .command("request")
