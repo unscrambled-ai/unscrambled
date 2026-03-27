@@ -1,7 +1,4 @@
-import {
-  checkResponseOk,
-  parseJsonResponse,
-} from "./parseJsonResponse";
+import { checkResponseOk, parseJsonResponse } from "./parseJsonResponse";
 
 export type HttpRequestOutputFormat = "text" | "json";
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -95,11 +92,15 @@ export function buildAuthorizedRequestPayload(
 
   const query =
     options.query.length > 0
-      ? Object.fromEntries(options.query.map((entry) => [entry.key, entry.value]))
+      ? Object.fromEntries(
+          options.query.map((entry) => [entry.key, entry.value])
+        )
       : undefined;
   const headers =
     options.header.length > 0
-      ? Object.fromEntries(options.header.map((entry) => [entry.key, entry.value]))
+      ? Object.fromEntries(
+          options.header.map((entry) => [entry.key, entry.value])
+        )
       : undefined;
 
   if (

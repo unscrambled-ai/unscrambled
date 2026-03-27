@@ -1,10 +1,7 @@
 import { Command, Option } from "commander";
 import { terminal } from "terminal-kit";
 
-import {
-  getEnvOption,
-  resolveEnvName,
-} from "../../shared/commandUtils";
+import { getEnvOption, resolveEnvName } from "../../shared/commandUtils";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import {
