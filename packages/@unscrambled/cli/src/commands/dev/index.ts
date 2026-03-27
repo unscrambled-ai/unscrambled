@@ -35,7 +35,7 @@ dev
   )
   .addOption(new Option("--dev").hideHelp())
   .action(async () => {
-    // `un dev` is explicitly tied to the dev environment.
+    // `unscrambled dev` is explicitly tied to the dev environment.
     // Set env vars early so shared helpers and logging behave consistently.
     process.env.UNSCRAMBLED_ENV = "dev";
     process.env.ENV_NAME = "dev";
@@ -204,7 +204,7 @@ dev
       watch: ["src", "node_modules/@unscrambled/sdk/dist"],
       ext: "js,ts",
       execMap: {
-        js: "npx un build",
+        js: "npx unscrambled build",
       },
     });
 
@@ -226,7 +226,7 @@ dev
         try {
           await triggerCommand.parseAsync([
             "node",
-            "un",
+            "unscrambled",
             "trigger",
             "--interactive",
             "--env",
