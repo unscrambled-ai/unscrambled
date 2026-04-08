@@ -42,6 +42,13 @@ type AppListResponse = {
       isLinkedToAuth: boolean;
     }>;
   }>;
+  customApps: Array<{
+    id: string;
+    name: string;
+    title: string;
+    authType: AppAuthType;
+    authorized: boolean;
+  }>;
 };
 
 type AppDetailResponse = {
@@ -58,6 +65,35 @@ type AppDetailResponse = {
   }>;
 };
 
+type CustomAppDetailResponse = {
+  id: string;
+  name: string;
+  title: string;
+  authType: AppAuthType;
+  auths: Array<{
+    id: string;
+    name: string;
+    status: string;
+    error: string | null;
+    apiKeySet: boolean;
+    passwordSet: boolean;
+    linkedToAuth: null | {
+      id: string;
+      name: string;
+      status: string;
+      apiKeySet: boolean;
+    };
+  }>;
+};
+
+type AuthListEntry = {
+  service: string;
+  authName: string;
+  authType: AppAuthType;
+  status: "connected" | "linked" | "configured" | "pending" | "error";
+  resourceType: "app" | "custom-app";
+};
+
 type AuthorizeResponse = {
   authRequestUrl: string;
 };
@@ -66,7 +102,7 @@ const DEFAULT_AUTH_NAME = "default";
 const OAUTH_WAIT_TIMEOUT_MS = 5 * 60 * 1000;
 
 export const auth = new Command("auth")
-  .description("Connect and manage app credentials")
+  .description("Connect and manage app and custom-app credentials")
   .addHelpText(
     "after",
     `\nKnown services: ${getSupportedServices()
@@ -78,6 +114,7 @@ Examples:
   unscrambled auth add hubspot --env prod
   unscrambled auth add salesforce --env prod --api-key "$SALESFORCE_API_KEY"
   cat api-key.txt | unscrambled auth add hubspot --env prod --stdin
+  unscrambled custom-app request granola --env dev --url https://public-api.granola.ai/v1/notes --header "Authorization: Bearer {{ apiKey }}"
   unscrambled auth remove hubspot --env prod
 `
   );
@@ -144,6 +181,129 @@ async function fetchApps(envName: string): Promise<AppListResponse> {
   );
 
   return await readApiResponse<AppListResponse>(response, "list apps");
+}
+
+async function fetchCustomAppDetail(
+  envName: string,
+  customAppName: string
+): Promise<CustomAppDetailResponse | null> {
+  const response = await fetch(
+    `${getBaseUrl()}/api/v1/projects/default/envs/${envName}/custom-apps/${customAppName}`,
+    {
+      headers: {
+        Authorization: `Bearer ${getRequiredApiKey()}`,
+      },
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  return await readApiResponse<CustomAppDetailResponse>(
+    response,
+    `get ${customAppName} custom app details`
+  );
+}
+
+function mapBuiltInAuthStatus(auth: {
+  authorized: boolean;
+  apiKeySet: boolean;
+  isLinkedToAuth: boolean;
+}): AuthListEntry["status"] {
+  if (auth.authorized) {
+    return "connected";
+  }
+
+  if (auth.isLinkedToAuth) {
+    return "linked";
+  }
+
+  if (auth.apiKeySet) {
+    return "configured";
+  }
+
+  return "pending";
+}
+
+function mapCustomAppAuthStatus(auth: {
+  status: string;
+  error: string | null;
+  apiKeySet: boolean;
+  passwordSet: boolean;
+  linkedToAuth: CustomAppDetailResponse["auths"][number]["linkedToAuth"];
+}): AuthListEntry["status"] {
+  if (auth.status === "AUTHORIZED") {
+    return "connected";
+  }
+
+  if (auth.status === "LINKED" || auth.linkedToAuth) {
+    return "linked";
+  }
+
+  if (auth.status === "ERROR" || auth.error) {
+    return "error";
+  }
+
+  if (auth.apiKeySet || auth.passwordSet) {
+    return "configured";
+  }
+
+  return "pending";
+}
+
+export function buildAuthListEntries(
+  result: AppListResponse,
+  customAppDetailsByName: Record<string, CustomAppDetailResponse | null> = {}
+): AuthListEntry[] {
+  const appAuths = result.apps
+    .filter((app) => app.auths.length > 0)
+    .flatMap((app) =>
+      app.auths.map((auth) => ({
+        service: app.name,
+        authName: auth.name,
+        authType: app.authType,
+        status: mapBuiltInAuthStatus(auth),
+        resourceType: "app" as const,
+      }))
+    );
+
+  const customAppAuths = result.customApps.flatMap((customApp) => {
+    const detail = customAppDetailsByName[customApp.name];
+
+    if (!detail || detail.auths.length === 0) {
+      return [
+        {
+          service: customApp.name,
+          authName: DEFAULT_AUTH_NAME,
+          authType: customApp.authType,
+          status: customApp.authorized ? "connected" : "pending",
+          resourceType: "custom-app" as const,
+        },
+      ];
+    }
+
+    return detail.auths.map((auth) => ({
+      service: customApp.name,
+      authName: auth.name,
+      authType: customApp.authType,
+      status: mapCustomAppAuthStatus(auth),
+      resourceType: "custom-app" as const,
+    }));
+  });
+
+  return [...appAuths, ...customAppAuths].sort((a, b) => {
+    const serviceCompare = a.service.localeCompare(b.service);
+    if (serviceCompare !== 0) {
+      return serviceCompare;
+    }
+
+    if (a.resourceType !== b.resourceType) {
+      return a.resourceType.localeCompare(b.resourceType);
+    }
+
+    return a.authName.localeCompare(b.authName);
+  });
 }
 
 function resolveAuthName(auths: Array<{ name: string }>): string {
@@ -481,24 +641,16 @@ auth
       try {
         const envName = resolveEnvName(getEnvOption(options));
         const result = await fetchApps(envName);
-
-        const auths = result.apps
-          .filter((app) => app.auths.length > 0)
-          .flatMap((app) =>
-            app.auths.map((auth) => ({
-              service: app.name,
-              authName: auth.name,
-              authType: app.authType,
-              status: auth.authorized
-                ? "connected"
-                : auth.isLinkedToAuth
-                ? "linked"
-                : auth.apiKeySet
-                ? "configured"
-                : "pending",
-            }))
-          )
-          .sort((a, b) => a.service.localeCompare(b.service));
+        const customAppDetails = await Promise.all(
+          result.customApps.map(async (customApp) => [
+            customApp.name,
+            await fetchCustomAppDetail(envName, customApp.name),
+          ] as const)
+        );
+        const auths = buildAuthListEntries(
+          result,
+          Object.fromEntries(customAppDetails)
+        );
 
         if (options.output === "json") {
           writeJson({ auths });
@@ -514,8 +666,14 @@ auth
         for (const item of auths) {
           terminal.bold(`${item.service.padEnd(14)}`);
           terminal(` ${item.status.padEnd(10)} ${item.authType}`);
-          if (item.authName !== DEFAULT_AUTH_NAME) {
+          if (
+            item.authName !== DEFAULT_AUTH_NAME &&
+            item.authName !== item.service
+          ) {
             terminal.gray(` (${item.authName})`);
+          }
+          if (item.resourceType === "custom-app") {
+            terminal.gray(` [custom-app]`);
           }
           terminal(`\n`);
         }

@@ -103,10 +103,12 @@ export function buildCustomAppRequestPayload(
     throw new Error("customAppName is required");
   }
 
+  const { auth, baseUrl, path, url, ...requestOptions } = options;
   const payload = buildAuthorizedRequestPayload({
-    ...options,
-    authName: options.auth,
-    url: resolveCustomAppRequestUrl(options),
+    ...requestOptions,
+    customAppName: options.customAppName,
+    authName: auth,
+    url: resolveCustomAppRequestUrl({ ...options, auth, baseUrl, path, url }),
   }) as {
     customAppName: string;
     authName?: string;
@@ -132,9 +134,9 @@ export const customApp = new Command("custom-app")
     "after",
     `
 Examples:
-  unscrambled custom-app request granola --env prod --url https://api.granola.ai/v1/notes --header "Authorization: Bearer {{ accessToken }}"
-  unscrambled custom-app request granola --env prod --url https://api.granola.ai/v1/notes --header "X-API-Key: {{ apiKey }}"
-  unscrambled custom-app request granola --env prod --base-url https://api.granola.ai --path /v1/notes --header "Authorization: {{basicAuth username password}}" --output json
+  unscrambled custom-app request granola --env prod --url https://public-api.granola.ai/v1/notes --header "Authorization: Bearer {{ apiKey }}"
+  unscrambled custom-app request granola --env prod --base-url https://public-api.granola.ai --path /v1/notes --header "Authorization: Bearer {{ apiKey }}" --output json
+  unscrambled custom-app request github --env prod --auth secondary --url https://api.github.com/user --header "Authorization: Bearer {{ accessToken }}"
 `
   );
 
@@ -155,8 +157,8 @@ customApp
     "Auth name to use when the custom app has multiple auths"
   )
   .option("--url <url>", "Full provider API URL")
-  .option("--base-url <baseUrl>", "Base provider API URL")
-  .option("--path <path>", "Provider API path")
+  .option("--base-url <baseUrl>", "Base provider API URL used with --path")
+  .option("--path <path>", "Provider API path used with --base-url")
   .option(
     "--query <key=value>",
     "Query parameter, can be repeated",
@@ -181,6 +183,15 @@ customApp
     new Option("-o, --output <format>", "Output format")
       .choices(["text", "json"])
       .default("text")
+  )
+  .addHelpText(
+    "after",
+    `
+Examples:
+  unscrambled custom-app request granola --env prod --url https://public-api.granola.ai/v1/notes --header "Authorization: Bearer {{ apiKey }}"
+  unscrambled custom-app request granola --env prod --base-url https://public-api.granola.ai --path /v1/notes --header "Authorization: Bearer {{ apiKey }}" --output json
+  unscrambled custom-app request github --env prod --auth secondary --url https://api.github.com/user --header "Authorization: Bearer {{ accessToken }}"
+`
   )
   .action(async (customAppName: string, options: CustomAppRequestOptions) => {
     requireAuth();

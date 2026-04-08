@@ -48,6 +48,28 @@ describe("resolveCustomAppRequestUrl", () => {
 });
 
 describe("buildCustomAppRequestPayload", () => {
+  test("builds a request payload from base url and path", () => {
+    expect(
+      buildCustomAppRequestPayload({
+        customAppName: "granola",
+        method: "GET",
+        baseUrl: "https://public-api.granola.ai",
+        path: "/v1/notes",
+        query: [{ key: "page_size", value: "10" }],
+        header: [{ key: "Authorization", value: "Bearer {{ apiKey }}" }],
+        output: "json",
+      })
+    ).toEqual({
+      customAppName: "granola",
+      method: "GET",
+      url: "https://public-api.granola.ai/v1/notes",
+      query: { page_size: "10" },
+      headers: {
+        Authorization: "Bearer {{ apiKey }}",
+      },
+    });
+  });
+
   test("builds a request payload with auth name and json body", () => {
     expect(
       buildCustomAppRequestPayload({
@@ -76,6 +98,20 @@ describe("buildCustomAppRequestPayload", () => {
       },
       body: '{"name":"demo"}',
     });
+  });
+
+  test("does not raise a path or url conflict for base url plus path", () => {
+    expect(() =>
+      buildCustomAppRequestPayload({
+        customAppName: "granola",
+        method: "GET",
+        baseUrl: "https://public-api.granola.ai",
+        path: "/v1/notes",
+        query: [],
+        header: [{ key: "Authorization", value: "Bearer {{ apiKey }}" }],
+        output: "json",
+      })
+    ).not.toThrow();
   });
 
   test("requires an auth header template", () => {

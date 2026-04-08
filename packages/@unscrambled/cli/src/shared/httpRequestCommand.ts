@@ -18,12 +18,51 @@ export interface AuthorizedRequestPayloadOptions {
   customAppName?: string;
   authName?: string;
   method: HttpMethod;
+  baseUrl?: string;
   path?: string;
   url?: string;
   query: KeyValuePair[];
   header: KeyValuePair[];
   json?: string;
   body?: string;
+}
+
+function resolveAuthorizedRequestTarget(
+  options: AuthorizedRequestPayloadOptions
+): { path?: string; url?: string } {
+  if (!options.path && !options.url) {
+    throw new Error("Either path or url is required");
+  }
+
+  if (options.url && options.path) {
+    throw new Error("Specify either path or url, not both");
+  }
+
+  if (options.url && options.baseUrl) {
+    throw new Error("Specify either baseUrl or url, not both");
+  }
+
+  if (options.baseUrl && !options.path) {
+    throw new Error("When using baseUrl, path is required");
+  }
+
+  if (options.url) {
+    return { url: options.url };
+  }
+
+  if (!options.baseUrl) {
+    return { path: options.path };
+  }
+
+  try {
+    return { url: new URL(options.path!, options.baseUrl).toString() };
+  } catch (error) {
+    throw new Error(
+      `Invalid request URL: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
 }
 
 function parseKeyValuePair(
@@ -64,17 +103,11 @@ export function buildAuthorizedRequestPayload(
     throw new Error("Specify either appName or customAppName, not both");
   }
 
-  if (!options.path && !options.url) {
-    throw new Error("Either path or url is required");
-  }
-
-  if (options.path && options.url) {
-    throw new Error("Specify either path or url, not both");
-  }
-
   if (options.json && options.body) {
     throw new Error("Use either --json or --body, not both");
   }
+
+  const requestTarget = resolveAuthorizedRequestTarget(options);
 
   let body = options.body;
   if (options.json) {
@@ -116,8 +149,7 @@ export function buildAuthorizedRequestPayload(
     ...(options.customAppName ? { customAppName: options.customAppName } : {}),
     ...(options.authName ? { authName: options.authName } : {}),
     method: options.method,
-    ...(options.path ? { path: options.path } : {}),
-    ...(options.url ? { url: options.url } : {}),
+    ...requestTarget,
     query,
     headers,
     body,
