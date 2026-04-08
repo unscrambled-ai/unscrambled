@@ -1,5 +1,35 @@
 # @unscrambled/cli
 
+## 0.3.0
+
+### Minor Changes
+
+- 1f4a41d: Add an `unscrambled app request` command for connector-backed app API requests
+
+  - Added `unscrambled app request <appName>` to make authenticated app requests without manually constructing auth headers
+  - Sends app-aware requests through the existing platform `http-request` endpoint using `appName`, relative `path`, method, query params, headers, and optional body
+  - Supports repeatable `--query key=value` and `--header "Name: value"` flags plus `--json` or `--body` payloads
+  - Surfaces the platform `X-Http-Request-Id` in CLI output for easier request inspection and debugging
+
+- df333a5: Add an `unscrambled custom-app request` command for authorized custom app API requests
+
+  - Added `unscrambled custom-app request <customAppName>` to make authenticated requests through custom app connections
+  - Supports `--url` for full request URLs or `--base-url` plus `--path` for a more app-like request shape
+  - Supports optional `--auth <authName>` when a custom app has multiple auth connections
+  - Requires callers to provide explicit custom-app auth header templates such as `Bearer {{ accessToken }}`, `{{ apiKey }}`, or `{{basicAuth username password}}`
+  - Reuses the existing platform `http-request` endpoint and surfaces the returned `X-Http-Request-Id`
+
+- f184339: Store API keys in the OS keychain instead of plaintext config files
+
+  - Added OS keychain integration (macOS Keychain, Linux libsecret, Windows Credential Manager) for secure credential storage
+  - API keys from `unscrambled login` are now stored in encrypted OS storage by default
+  - Existing keys in `~/.unscrambled/.unscrambled.yaml` are automatically migrated to the keychain on first use
+  - Falls back to `UNSCRAMBLED_API_KEY` environment variable when no keychain is available (CI, Docker, headless)
+  - Added `unscrambled logout` command to remove stored credentials
+  - Secrets are written via stdin to avoid exposure in process listings
+  - All keychain operations have a 3-second timeout to prevent hangs
+  - Renamed CLI binary from `un` to `unscrambled`
+
 ## 0.2.0
 
 ### Minor Changes
