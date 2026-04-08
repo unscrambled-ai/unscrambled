@@ -642,10 +642,13 @@ auth
         const envName = resolveEnvName(getEnvOption(options));
         const result = await fetchApps(envName);
         const customAppDetails = await Promise.all(
-          result.customApps.map(async (customApp) => [
-            customApp.name,
-            await fetchCustomAppDetail(envName, customApp.name),
-          ] as const)
+          result.customApps.map(
+            async (customApp) =>
+              [
+                customApp.name,
+                await fetchCustomAppDetail(envName, customApp.name),
+              ] as const
+          )
         );
         const auths = buildAuthListEntries(
           result,
