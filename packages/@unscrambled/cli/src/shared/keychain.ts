@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
 import os from "os";
 
 const SERVICE = "unscrambled-cli";
@@ -69,10 +69,14 @@ export function saveToKeychain(apiKey: string): void {
       break;
     }
     case "win32": {
-      execSync(`cmdkey /generic:${SERVICE} /user:${ACCOUNT} /pass:${encoded}`, {
-        stdio: "pipe",
-        timeout: TIMEOUT_MS,
-      });
+      execFileSync(
+        "cmdkey",
+        [`/generic:${SERVICE}`, `/user:${ACCOUNT}`, `/pass:${encoded}`],
+        {
+          stdio: "pipe",
+          timeout: TIMEOUT_MS,
+        }
+      );
       break;
     }
   }
