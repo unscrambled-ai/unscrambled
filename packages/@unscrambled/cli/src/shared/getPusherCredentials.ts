@@ -20,8 +20,8 @@ export default async function getPusherCredentials(): Promise<PusherCredentials>
     terminal.red("\n❌ Authentication required\n\n");
     terminal("You need to log in or sign up before using this command.\n\n");
     terminal.bold("To get started, run one of the following commands:\n");
-    terminal.green("  un login\n");
-    terminal.green("  un signup\n\n");
+    terminal.green("  unscrambled login\n");
+    terminal.green("  unscrambled signup\n\n");
     program.error("", { exitCode: 1 });
   }
 

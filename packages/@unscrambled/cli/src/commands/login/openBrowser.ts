@@ -5,12 +5,15 @@ export default async function openBrowser(
   authUrl: string,
   baseUrl: string,
   accountType: "new" | "existing",
-  localPort: number
+  localPort: number,
+  options: { quiet?: boolean } = {}
 ) {
-  if (accountType === "new") {
-    terminal("Opening your browser to allow you to sign up\n");
-  } else {
-    terminal("Opening your browser to allow you to sign in\n");
+  if (!options.quiet) {
+    if (accountType === "new") {
+      terminal("Opening your browser to allow you to sign up\n");
+    } else {
+      terminal("Opening your browser to allow you to sign in\n");
+    }
   }
 
   const pagePrefix = accountType === "new" ? "/sign-up#/?redirect_url=" : "";

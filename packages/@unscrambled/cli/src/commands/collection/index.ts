@@ -1,6 +1,12 @@
 import { Command, Option, program } from "commander";
 import { terminal } from "terminal-kit";
 
+import {
+  confirmDangerousAction,
+  writeError,
+  writeInfo,
+  writeSuccess,
+} from "../../shared/commandUtils";
 import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
@@ -456,11 +462,21 @@ collections
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
-  .addOption(new Option("-f, --force", "Skip confirmation prompt"))
+  .addOption(new Option("--yes", "Skip confirmation prompt"))
+  .addOption(
+    new Option("--dry-run", "Preview the reset without making changes")
+  )
+  .addOption(new Option("-f, --force", "Deprecated alias for --yes").hideHelp())
   .action(
     async (
       collectionName: string,
-      options: { env?: string; environment?: string; force?: boolean }
+      options: {
+        env?: string;
+        environment?: string;
+        yes?: boolean;
+        force?: boolean;
+        dryRun?: boolean;
+      }
     ) => {
       requireAuth();
 
@@ -507,22 +523,20 @@ collections
         );
         terminal.yellow("Existing objects will NOT be deleted.\n\n");
 
-        if (!options.force) {
-          terminal.yellow("Are you sure? [y/N] ");
-          const input = await new Promise<string>((resolve) => {
-            terminal.inputField({}, (error, input) => {
-              resolve(input || "");
-            });
-          });
-          terminal("\n");
-
-          if (input.toLowerCase() !== "y" && input.toLowerCase() !== "yes") {
-            terminal("Canceled.\n");
-            return;
-          }
+        if (options.dryRun) {
+          writeInfo(
+            `Dry run: would reset collection '${collectionName}' in ${envName} and force a full re-sync.`
+          );
+          return;
         }
 
-        terminal("Resetting collection...\n");
+        await confirmDangerousAction({
+          yes: options.yes ?? options.force,
+          dryRun: options.dryRun,
+          prompt: "Are you sure you want to reset this collection? [y/N]",
+        });
+
+        writeInfo("Resetting collection...");
 
         const response = await fetch(
           `${baseUrl}/api/v1/projects/default/envs/${envName}/collections/${collectionName}/reset`,
@@ -544,12 +558,10 @@ collections
           return;
         }
 
-        terminal.green("Collection reset successfully.\n");
+        writeSuccess("Collection reset successfully.");
         terminal("Next sync will perform a full re-sync.\n");
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }
@@ -563,11 +575,21 @@ collections
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
-  .addOption(new Option("-f, --force", "Skip confirmation prompt"))
+  .addOption(new Option("--yes", "Skip confirmation prompt"))
+  .addOption(
+    new Option("--dry-run", "Preview the clear without making changes")
+  )
+  .addOption(new Option("-f, --force", "Deprecated alias for --yes").hideHelp())
   .action(
     async (
       collectionName: string,
-      options: { env?: string; environment?: string; force?: boolean }
+      options: {
+        env?: string;
+        environment?: string;
+        yes?: boolean;
+        force?: boolean;
+        dryRun?: boolean;
+      }
     ) => {
       requireAuth();
 
@@ -613,23 +635,21 @@ collections
         );
         terminal.red("This action cannot be undone.\n\n");
 
-        if (!options.force) {
-          terminal.yellow(`Type the collection name to confirm: `);
-          const input = await new Promise<string>((resolve) => {
-            terminal.inputField({}, (error, input) => {
-              resolve(input || "");
-            });
-          });
-          terminal("\n");
-
-          if (input !== collectionName) {
-            terminal.red("Collection name does not match. Aborting.\n");
-            process.exitCode = 1;
-            return;
-          }
+        if (options.dryRun) {
+          writeInfo(
+            `Dry run: would clear all objects from collection '${collectionName}' in ${envName}.`
+          );
+          return;
         }
 
-        terminal("Clearing collection...\n");
+        await confirmDangerousAction({
+          yes: options.yes ?? options.force,
+          dryRun: options.dryRun,
+          prompt: `Type the collection name to confirm deletion:`,
+          expectedText: collectionName,
+        });
+
+        writeInfo("Clearing collection...");
 
         const response = await fetch(
           `${baseUrl}/api/v1/projects/default/envs/${envName}/collections/${collectionName}/clear`,
@@ -652,14 +672,12 @@ collections
         }
 
         const result = await response.json();
-        terminal.green(`Collection cleared successfully.\n`);
+        writeSuccess("Collection cleared successfully.");
         if (result.deletedCount !== undefined) {
           terminal(`Deleted ${result.deletedCount} objects.\n`);
         }
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }

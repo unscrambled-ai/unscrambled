@@ -1,31 +1,36 @@
 import { Command, Option, program } from "commander";
 import { terminal } from "terminal-kit";
 
+import {
+  OutputFormat,
+  getEnvOption,
+  resolveEnvName,
+  writeError,
+  writeInfo,
+  writeJson,
+  writeSuccess,
+  writeWarning,
+} from "../../shared/commandUtils";
 import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
-import { getEnvName } from "../../shared/getEnvName";
 import {
   checkResponseOk,
   parseJsonResponse,
 } from "../../shared/parseJsonResponse";
+import { triggerAction } from "../../shared/triggerAction";
 
-type OutputFormat = "text" | "json";
-
-function resolveEnvName(cliEnv?: string): string {
-  if (cliEnv) return cliEnv;
-  const globalEnv = program.opts().env;
-  if (globalEnv) return globalEnv;
-  return getEnvName();
-}
-
-function getEnvOption(options: any): string | undefined {
-  return options?.env ?? options?.environment;
-}
-
-export const actions = new Command("actions").description(
-  "Manage and trigger actions"
-);
+export const actions = new Command("actions")
+  .description("Manage and trigger actions")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  unscrambled actions list --env dev
+  unscrambled actions trigger send-email --env prod --managed-user-external-id user_123
+  unscrambled actions trigger self --env dev --all-managed-users --output json
+`
+  );
 
 // List actions
 actions
@@ -55,9 +60,7 @@ actions
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
         return;
       }
@@ -115,9 +118,7 @@ actions
           terminal(`Total: ${actions.length} action(s)\n`);
         }
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }
@@ -131,12 +132,14 @@ actions
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
+  .addOption(new Option("--managed-user-id <id>", "Managed user ID"))
   .addOption(
     new Option(
       "-m, --managed-user-external-id <id>",
       "Managed user external ID"
     )
   )
+  .addOption(new Option("--all-managed-users", "Trigger for all managed users"))
   .addOption(new Option("-d, --data <json>", "JSON data to pass to the action"))
   .addOption(
     new Option("-o, --output <format>", "Output format")
@@ -149,7 +152,9 @@ actions
       options: {
         env?: string;
         environment?: string;
+        managedUserId?: string;
         managedUserExternalId?: string;
+        allManagedUsers?: boolean;
         data?: string;
         output: OutputFormat;
       }
@@ -160,76 +165,85 @@ actions
       try {
         envName = resolveEnvName(getEnvOption(options));
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
+        writeError(
+          error instanceof Error ? error.message : String(error),
+          options
         );
         process.exitCode = 1;
         return;
       }
 
       try {
-        const baseUrl = getBaseUrl();
-        const apiKey = getApiKey();
-
-        // Parse data if provided
         let data: any = undefined;
         if (options.data) {
           try {
             data = JSON.parse(options.data);
           } catch {
-            terminal.red("Invalid JSON data provided\n");
+            writeError("Invalid JSON data provided", options);
             process.exitCode = 1;
             return;
           }
         }
 
-        const body: any = { actionName: name };
-        if (options.managedUserExternalId) {
-          body.managedUserExternalId = options.managedUserExternalId;
-        }
-        if (data) {
-          body.data = data;
-        }
+        const selectionCount = [
+          options.managedUserId,
+          options.managedUserExternalId,
+          options.allManagedUsers ? "ALL" : undefined,
+        ].filter(Boolean).length;
 
-        terminal(`Triggering action: ${name}...\n`);
-
-        const response = await fetch(
-          `${baseUrl}/api/v1/projects/default/envs/${envName}/runs`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(body),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          terminal.red(
-            `Trigger failed: ${errorData.message || response.statusText}\n`
+        if (selectionCount > 1) {
+          writeError(
+            "Specify only one of --managed-user-id, --managed-user-external-id, or --all-managed-users.",
+            options
           );
           process.exitCode = 1;
           return;
         }
 
-        const result = await parseJsonResponse(response, {
-          operationName: "trigger action",
+        const scopeParts: string[] = [`env '${envName}'`];
+        if (options.managedUserId) {
+          scopeParts.push(`managed user '${options.managedUserId}'`);
+        } else if (options.managedUserExternalId) {
+          scopeParts.push(
+            `managed user external id '${options.managedUserExternalId}'`
+          );
+        } else if (options.allManagedUsers) {
+          scopeParts.push("all managed users");
+        }
+
+        writeInfo(
+          `Triggering action '${name}' for ${scopeParts.join(" and ")}...`,
+          options
+        );
+
+        const result = await triggerAction(name, {
+          environment: envName,
+          managedUserId: options.allManagedUsers
+            ? "ALL"
+            : options.managedUserId,
+          managedUserExternalId: options.managedUserExternalId,
+          data,
         });
 
+        if (!result.success) {
+          writeError(`Trigger failed: ${result.error}`, options);
+          process.exitCode = 1;
+          return;
+        }
+
         if (options.output === "json") {
-          process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+          writeJson(result.result);
         } else {
-          terminal.green(`Action triggered successfully!\n`);
-          terminal(`Run ID: ${result.id || result.runId || "(unknown)"}\n`);
+          writeSuccess("Action triggered successfully!", options);
+          terminal(`Run ID: ${result.runId || "(unknown)"}\n`);
           if (result.status) {
             terminal(`Status: ${result.status}\n`);
           }
         }
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
+        writeError(
+          error instanceof Error ? error.message : String(error),
+          options
         );
         process.exitCode = 1;
       }

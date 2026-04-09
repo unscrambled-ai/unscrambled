@@ -1,6 +1,14 @@
 import { Command, Option, program } from "commander";
 import { terminal } from "terminal-kit";
 
+import {
+  confirmDangerousAction,
+  writeError,
+  writeInfo,
+  writeJson,
+  writeSuccess,
+  writeWarning,
+} from "../../shared/commandUtils";
 import { requireAuth } from "../../shared/requireAuth";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
@@ -1159,7 +1167,7 @@ syncs
 
         terminal.bold("5. Recommendations:\n");
         terminal(
-          `   - Run 'un sync delta ${syncId} --model <modelName>' to preview what changes are pending\n`
+          `   - Run 'unscrambled sync delta ${syncId} --model <modelName>' to preview what changes are pending\n`
         );
         terminal(
           `   - Check if multiple integrations share the '${syncData.collection?.name}' collection\n`
@@ -1452,11 +1460,21 @@ syncs
   .addOption(
     new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
   )
-  .addOption(new Option("-f, --force", "Skip confirmation prompt"))
+  .addOption(new Option("--yes", "Skip confirmation prompt"))
+  .addOption(
+    new Option("--dry-run", "Preview the cancellation without making changes")
+  )
+  .addOption(new Option("-f, --force", "Deprecated alias for --yes").hideHelp())
   .action(
     async (
       syncId: string,
-      options: { env?: string; environment?: string; force?: boolean }
+      options: {
+        env?: string;
+        environment?: string;
+        yes?: boolean;
+        force?: boolean;
+        dryRun?: boolean;
+      }
     ) => {
       requireAuth();
 
@@ -1499,22 +1517,20 @@ syncs
           return;
         }
 
-        if (!options.force) {
-          terminal.yellow("Are you sure you want to cancel this sync? [y/N] ");
-          const input = await new Promise<string>((resolve) => {
-            terminal.inputField({}, (error, input) => {
-              resolve(input || "");
-            });
-          });
-          terminal("\n");
-
-          if (input.toLowerCase() !== "y" && input.toLowerCase() !== "yes") {
-            terminal("Canceled.\n");
-            return;
-          }
+        if (options.dryRun) {
+          writeInfo(
+            `Dry run: would cancel sync '${syncId}' in ${envName} (current status: ${syncData.status}).`
+          );
+          return;
         }
 
-        terminal("Canceling sync...\n");
+        await confirmDangerousAction({
+          yes: options.yes ?? options.force,
+          dryRun: options.dryRun,
+          prompt: "Are you sure you want to cancel this sync? [y/N]",
+        });
+
+        writeInfo("Canceling sync...");
 
         const response = await fetch(
           `${baseUrl}/api/v1/projects/default/envs/${envName}/syncs/${syncId}/cancel`,
@@ -1536,11 +1552,9 @@ syncs
           return;
         }
 
-        terminal.green("Sync canceled successfully.\n");
+        writeSuccess("Sync canceled successfully.");
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
-        );
+        writeError(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     }
@@ -1706,7 +1720,7 @@ syncs
               "  Tip: Stuck syncs may indicate the dev server disconnected.\n"
             );
             terminal.yellow(
-              "  Use 'un syncs cancel <syncId>' to cancel stuck syncs.\n"
+              "  Use 'unscrambled syncs cancel <syncId>' to cancel stuck syncs.\n"
             );
           } else {
             terminal.green("  None\n");
@@ -1794,10 +1808,11 @@ syncs
           body.type = options.type;
         }
 
-        terminal(
+        writeInfo(
           `Triggering ${options.type ?? "auto"} sync for ${
             options.integration
-          }...\n`
+          }...`,
+          options
         );
 
         const response = await fetch(
@@ -1830,14 +1845,12 @@ syncs
           syncCount?: number;
         };
 
-        if (options.output === "json") {
-          process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-        } else {
+        if (options.output !== "json") {
           terminal.green(`${result.message}\n`);
           if (result.syncId) {
             terminal(`Sync ID: ${result.syncId}\n`);
             terminal.gray(
-              `\nTip: Run 'un syncs watch ${result.syncId} -e ${envName}' to monitor progress\n`
+              `\nTip: Run 'unscrambled syncs watch ${result.syncId} -e ${envName}' to monitor progress\n`
             );
           }
           if (result.syncIds && result.syncIds.length > 0) {
@@ -1853,11 +1866,23 @@ syncs
 
         // Optionally wait for completion
         if (options.wait && result.syncId) {
-          terminal("\nWaiting for sync to complete...\n");
+          if (options.output !== "json") {
+            terminal("\nWaiting for sync to complete...\n");
+          }
 
           const pollInterval = 2000; // 2 seconds
           const maxWait = 30 * 60 * 1000; // 30 minutes
           const startTime = Date.now();
+          let finalSync:
+            | {
+                status: string;
+                type: string;
+                total: number;
+                succeeded: number;
+                failed: number;
+                error?: string;
+              }
+            | undefined;
 
           while (Date.now() - startTime < maxWait) {
             await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -1870,7 +1895,7 @@ syncs
             );
 
             if (!syncResponse.ok) {
-              terminal.yellow(`Warning: Could not fetch sync status\n`);
+              writeWarning("Warning: Could not fetch sync status", options);
               continue;
             }
 
@@ -1885,32 +1910,49 @@ syncs
 
             // Check if terminal state
             if (["SUCCEEDED", "FAILED", "CANCELED"].includes(sync.status)) {
-              terminal("\n");
-              if (sync.status === "SUCCEEDED") {
-                terminal.green(`Sync completed successfully!\n`);
-              } else if (sync.status === "FAILED") {
-                terminal.red(`Sync failed: ${sync.error ?? "unknown error"}\n`);
-              } else {
-                terminal.yellow(`Sync was canceled\n`);
+              finalSync = sync;
+              if (options.output !== "json") {
+                terminal("\n");
+                if (sync.status === "SUCCEEDED") {
+                  terminal.green(`Sync completed successfully!\n`);
+                } else if (sync.status === "FAILED") {
+                  terminal.red(
+                    `Sync failed: ${sync.error ?? "unknown error"}\n`
+                  );
+                } else {
+                  terminal.yellow(`Sync was canceled\n`);
+                }
+                terminal(
+                  `Items: ${sync.total} total, ${sync.succeeded} succeeded, ${sync.failed} failed\n`
+                );
               }
-              terminal(
-                `Items: ${sync.total} total, ${sync.succeeded} succeeded, ${sync.failed} failed\n`
-              );
               break;
             }
 
             // Show progress
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            terminal.eraseLine();
-            terminal.column(0);
-            terminal(
-              `[${elapsed}s] ${sync.status} - ${sync.succeeded}/${sync.total} items`
-            );
+            if (options.output !== "json") {
+              const elapsed = Math.floor((Date.now() - startTime) / 1000);
+              terminal.eraseLine();
+              terminal.column(0);
+              terminal(
+                `[${elapsed}s] ${sync.status} - ${sync.succeeded}/${sync.total} items`
+              );
+            }
           }
+
+          if (options.output === "json") {
+            writeJson({
+              trigger: result,
+              finalSync: finalSync ?? null,
+            });
+          }
+        } else if (options.output === "json") {
+          writeJson(result);
         }
       } catch (error) {
-        terminal.red(
-          `${error instanceof Error ? error.message : String(error)}\n`
+        writeError(
+          error instanceof Error ? error.message : String(error),
+          options
         );
         process.exitCode = 1;
       }
@@ -1920,6 +1962,7 @@ syncs
 // Pause sync scheduling
 syncs
   .command("scheduling:pause")
+  .alias("scheduling-pause")
   .description(
     "Pause sync scheduling - no new syncs will be created, but existing syncs will complete"
   )
@@ -1973,7 +2016,7 @@ syncs
         `No new syncs will be created. Existing syncs will complete.\n`
       );
       terminal.gray(
-        `Use 'un syncs scheduling:resume -e ${envName}' to resume.\n`
+        `Use 'unscrambled syncs scheduling:resume -e ${envName}' to resume.\n`
       );
     } catch (error) {
       terminal.red(
@@ -1986,6 +2029,7 @@ syncs
 // Resume sync scheduling
 syncs
   .command("scheduling:resume")
+  .alias("scheduling-resume")
   .description(
     "Resume sync scheduling - new syncs will be created according to schedules"
   )

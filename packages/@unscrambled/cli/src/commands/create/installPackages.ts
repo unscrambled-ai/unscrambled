@@ -1,4 +1,4 @@
-import execa from "execa";
+import { execa } from "execa";
 import { program } from "commander";
 
 export default async function installPackages(repo: string) {

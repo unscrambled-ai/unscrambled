@@ -4,9 +4,13 @@ import { terminal } from "terminal-kit";
 import {
   readConfig,
   writeConfig,
-  getConfigFilePath,
   UnscrambledConfig,
 } from "../../shared/configManager";
+import { isKeychainAvailable, saveToKeychain } from "../../shared/keychain";
+
+function isJsonOutput(): boolean {
+  return process.env.UNSCRAMBLED_CLI_OUTPUT_FORMAT === "json";
+}
 
 export default async function writeConfigFile(
   {
@@ -14,27 +18,51 @@ export default async function writeConfigFile(
     baseUrl,
   }: { UNSCRAMBLED_API_KEY: string; baseUrl: string },
   res: ServerResponse
-) {
+): Promise<"keychain" | "config"> {
   try {
+    if (!UNSCRAMBLED_API_KEY?.trim()) {
+      throw new Error("Login response did not include an API key");
+    }
+
     const existing = readConfig();
 
     const config: UnscrambledConfig = {
       ...existing,
-      apiKey: UNSCRAMBLED_API_KEY,
     };
+    delete config.apiKey;
 
-    // Only store baseUrl if it's not the default production URL
     if (baseUrl !== "https://app.unscrambled.ai") {
       config.baseUrl = baseUrl;
     } else {
       delete config.baseUrl;
     }
 
-    writeConfig(config);
+    if (isKeychainAvailable()) {
+      saveToKeychain(UNSCRAMBLED_API_KEY);
+      writeConfig(config);
 
-    res.setHeader("location", `${baseUrl}/cli-login/succeeded`);
-    res.end();
-    terminal(`Login successful, wrote credentials to ${getConfigFilePath()}\n`);
+      res.setHeader("location", `${baseUrl}/cli-login/succeeded`);
+      res.end();
+      if (!isJsonOutput()) {
+        terminal("Login successful, API key stored in system keychain\n");
+      }
+      return "keychain";
+    } else {
+      config.apiKey = UNSCRAMBLED_API_KEY;
+      writeConfig(config);
+
+      res.setHeader("location", `${baseUrl}/cli-login/succeeded`);
+      res.end();
+      if (!isJsonOutput()) {
+        terminal.yellow(
+          "Warning: OS keychain not available. API key stored in config file.\n"
+        );
+        terminal(
+          "For better security, install OS keychain support and run `unscrambled login` again.\n"
+        );
+      }
+      return "config";
+    }
   } catch (error) {
     res.setHeader("location", `${baseUrl}/cli-login/failed`);
     res.end();
