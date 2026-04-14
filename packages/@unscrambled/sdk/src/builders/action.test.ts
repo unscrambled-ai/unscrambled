@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { defineAction } from "./action";
 import { defineOAuth2CustomApp } from "./customApp";
+import { defineWebhook } from "./webhook";
 import { clearRegistry, getActions } from "../registry";
 
 describe("ActionBuilder", () => {
@@ -61,10 +62,45 @@ describe("ActionBuilder", () => {
       expect(action.type).toBeUndefined();
     });
 
-    // Apps functionality has been removed from actions
+    it("should attach built-in apps directly to actions", () => {
+      const action = defineAction("sync-contacts")
+        .withApp("hubspot")
+        .deploy();
+
+      expect(action.apps).toEqual(["hubspot"]);
+      expect(action.customApps).toBeUndefined();
+    });
+
+    it("should attach custom apps directly to actions", () => {
+      const customApp = defineOAuth2CustomApp("crm").deploy();
+      const action = defineAction("sync-contacts")
+        .withCustomApp(customApp)
+        .deploy();
+
+      expect(action.apps).toBeUndefined();
+      expect(action.customApps).toEqual(["crm"]);
+    });
   });
 
-  // Custom apps functionality has been removed from actions
+  describe("Triggers", () => {
+    it("should add a webhook trigger from a webhook resource", () => {
+      const webhook = defineWebhook("demo-request").deploy();
+
+      const action = defineAction("process-lead")
+        .withWebhookTrigger(webhook)
+        .deploy();
+
+      expect(action.trigger).toEqual({ webhook: "demo-request" });
+    });
+
+    it("should add a polling trigger", () => {
+      const action = defineAction("poll-leads")
+        .withPollingTrigger(300)
+        .deploy();
+
+      expect(action.trigger).toEqual({ pollingFrequency: 300 });
+    });
+  });
 
   describe("Variables and secrets", () => {
     it("should add variables to an action", () => {
@@ -212,18 +248,22 @@ describe("ActionBuilder", () => {
       expect(actions[0].type).toBe("action");
       expect(actions[0].metadata?.builderType).toBe("ActionBuilder");
       expect(actions[0].metadata?.createdBy).toBe("defineAction");
+      expect(actions[0].metadata?.hasTrigger).toBe(false);
       expect(actions[0].metadata?.variableCount).toBe(0);
       expect(actions[0].metadata?.secretCount).toBe(1);
     });
 
     it("should track metadata correctly", () => {
       defineAction("metadata-test")
+        .withApp("hubspot")
         .addVariable("var1")
         .addVariable("var2")
         .addSecret("secret1")
         .deploy();
 
       const actions = getActions();
+      expect(actions[0].metadata?.appCount).toBe(1);
+      expect(actions[0].metadata?.customAppCount).toBe(0);
       expect(actions[0].metadata?.variableCount).toBe(2);
       expect(actions[0].metadata?.secretCount).toBe(1);
     });
@@ -261,6 +301,21 @@ describe("ActionBuilder", () => {
       );
       expect(action.variables).toHaveLength(1);
       expect(action.secrets).toHaveLength(1);
+    });
+  });
+
+  describe("Copying actions", () => {
+    it("preserves direct app auth metadata when cloning from an action", () => {
+      const action = defineAction("process-lead")
+        .withApp("hubspot")
+        .deploy();
+
+      const cloned = defineAction.from(action)
+        .withName("process-lead-copy")
+        .deploy();
+
+      expect(cloned.apps).toEqual(["hubspot"]);
+      expect(cloned.customApps).toBeUndefined();
     });
   });
 });

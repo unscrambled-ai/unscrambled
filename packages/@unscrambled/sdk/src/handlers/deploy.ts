@@ -38,6 +38,11 @@ interface SyncScheduleProps {
   maxRetries?: number; // Required when type is "BASELINE"
 }
 
+interface ActionTrigger {
+  webhook?: string;
+  pollingFrequency?: number;
+}
+
 interface IntegrationProps {
   name: string;
   title: string;
@@ -62,16 +67,29 @@ interface ActionProps {
   title: string;
   description?: string;
   type: "FULL_SYNC" | "INCREMENTAL_SYNC" | null;
+  trigger?: ActionTrigger;
+  apps?: string[];
+  customApps?: string[];
+  variables?: Array<string | { name: string; description?: string }>;
+  secrets?: Array<string | { name: string; description?: string }>;
+}
+
+interface WebhookProps {
+  name: string;
+  title: string;
+  apps?: string[];
+  customApps?: string[];
   variables?: Array<string | { name: string; description?: string }>;
   secrets?: Array<string | { name: string; description?: string }>;
 }
 
 interface DeploymentItem {
-  type: "collection" | "customApp" | "integration" | "action";
+  type: "collection" | "customApp" | "integration" | "action" | "webhook";
   collectionProps?: CollectionProps;
   customAppProps?: CustomAppProps;
   integrationProps?: IntegrationProps;
   actionProps?: ActionProps;
+  webhookProps?: WebhookProps;
 }
 
 function transformRegistryToDeploymentSchema(
@@ -104,6 +122,9 @@ function transformRegistryToDeploymentSchema(
       `   Name: ${
         item?.collection?.name ||
         item?.customApp?.name ||
+        item?.integration?.name ||
+        item?.action?.name ||
+        item?.webhook?.name ||
         item?.model?.name ||
         "unnamed"
       }`
@@ -256,6 +277,13 @@ function transformRegistryToDeploymentSchema(
           integrationProps.actions = Object.keys(integration.actions);
         }
 
+        if (
+          integration.webhooks &&
+          Object.keys(integration.webhooks).length > 0
+        ) {
+          integrationProps.webhooks = Object.keys(integration.webhooks);
+        }
+
         // Add sync schedules if they exist
         if (integration.syncSchedules && integration.syncSchedules.length > 0) {
           integrationProps.syncSchedules = integration.syncSchedules;
@@ -277,8 +305,6 @@ function transformRegistryToDeploymentSchema(
           integrationProps.modelPermissions = integration.modelPermissions;
         }
 
-        // Webhooks will be added when we implement webhook builders
-
         const integrationItem = {
           type: "integration" as const,
           integrationProps,
@@ -296,6 +322,9 @@ function transformRegistryToDeploymentSchema(
         console.log(`   📚 Collection: ${integrationProps.collection}`);
         console.log(
           `   ⚡ Actions: ${integrationProps.actions?.join(", ") || "none"}`
+        );
+        console.log(
+          `   🪝 Webhooks: ${integrationProps.webhooks?.join(", ") || "none"}`
         );
         console.log(
           `   ⏱️ Sync Schedules: ${
@@ -350,6 +379,15 @@ function transformRegistryToDeploymentSchema(
             title: item.action.title || item.action.name || "Unnamed Action",
             description: item.action.description,
             type: item.action.type ?? null,
+            trigger: item.action.trigger,
+            apps:
+              item.action.apps && item.action.apps.length > 0
+                ? item.action.apps
+                : undefined,
+            customApps:
+              item.action.customApps && item.action.customApps.length > 0
+                ? item.action.customApps
+                : undefined,
             variables: actionVariables.length > 0 ? actionVariables : undefined,
             secrets: actionSecrets.length > 0 ? actionSecrets : undefined,
           },
@@ -357,6 +395,63 @@ function transformRegistryToDeploymentSchema(
 
         console.log(`   ✅ Action processed: ${actionItem.actionProps.name}`);
         deploymentItems.push(actionItem);
+        break;
+
+      case "webhook":
+        console.log("   🪝 Processing webhook...");
+
+        if (!item.webhook || typeof item.webhook !== "object") {
+          console.warn("   ❌ Skipping webhook with invalid data:", item);
+          continue;
+        }
+
+        const webhookVariables =
+          item.webhook.variables
+            ?.map((variable: any) => {
+              if (!variable) return null;
+              return variable.title || variable.description
+                ? {
+                    name: variable.name || "unnamed-variable",
+                    description: variable.title || variable.description,
+                  }
+                : variable.name || "unnamed-variable";
+            })
+            .filter(Boolean) || [];
+
+        const webhookSecrets =
+          item.webhook.secrets
+            ?.map((secret: any) => {
+              if (!secret) return null;
+              return secret.title || secret.description
+                ? {
+                    name: secret.name || "unnamed-secret",
+                    description: secret.title || secret.description,
+                  }
+                : secret.name || "unnamed-secret";
+            })
+            .filter(Boolean) || [];
+
+        const webhookItem = {
+          type: "webhook" as const,
+          webhookProps: {
+            name: item.webhook.name || "unnamed-webhook",
+            title: item.webhook.title || item.webhook.name || "Unnamed Webhook",
+            apps:
+              item.webhook.apps && item.webhook.apps.length > 0
+                ? item.webhook.apps
+                : undefined,
+            customApps:
+              item.webhook.customApps && item.webhook.customApps.length > 0
+                ? item.webhook.customApps
+                : undefined,
+            variables:
+              webhookVariables.length > 0 ? webhookVariables : undefined,
+            secrets: webhookSecrets.length > 0 ? webhookSecrets : undefined,
+          },
+        };
+
+        console.log(`   ✅ Webhook processed: ${webhookItem.webhookProps.name}`);
+        deploymentItems.push(webhookItem);
         break;
 
       case "model":
@@ -387,10 +482,14 @@ function transformRegistryToDeploymentSchema(
   const actions = deploymentItems.filter(
     (item) => item.type === "action"
   ).length;
+  const webhooks = deploymentItems.filter(
+    (item) => item.type === "webhook"
+  ).length;
   console.log(`   - Collections: ${collections}`);
   console.log(`   - Custom Apps: ${customApps}`);
   console.log(`   - Integrations: ${integrations}`);
   console.log(`   - Actions: ${actions}`);
+  console.log(`   - Webhooks: ${webhooks}`);
 
   return deploymentItems;
 }
@@ -671,7 +770,9 @@ export const handleDeploy: DeployHandler = async (
 
     if (deploymentData.length === 0) {
       console.log("ℹ️ No deployable items found in registry");
-      console.log("💡 Note: Only collections and custom apps are deployable");
+      console.log(
+        "💡 Note: Collections, custom apps, webhooks, actions, and integrations are deployable"
+      );
       console.log(
         "💡 Standalone models must be part of a collection to be deployed"
       );
@@ -713,6 +814,8 @@ export const handleDeploy: DeployHandler = async (
           (item) => item.type === "integration"
         ).length,
         actions: deploymentData.filter((item) => item.type === "action").length,
+        webhooks: deploymentData.filter((item) => item.type === "webhook")
+          .length,
       },
       logs: [],
     };

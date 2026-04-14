@@ -23,6 +23,9 @@ export { IntegrationBuilder, defineIntegration } from "./integration";
 // Action builder
 export { ActionBuilder, defineAction } from "./action";
 
+// Webhook builder
+export { WebhookBuilder, defineWebhook } from "./webhook";
+
 // OAuth connector builder
 export {
   OAuthConnectorBuilder,

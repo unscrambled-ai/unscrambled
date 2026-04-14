@@ -5,6 +5,7 @@ import {
   defineCollection,
   defineModel,
   defineAction,
+  defineWebhook,
 } from "./";
 import { clearRegistry, getIntegrations } from "../registry";
 
@@ -187,6 +188,41 @@ describe("IntegrationBuilder", () => {
     });
   });
 
+  describe("Webhooks", () => {
+    it("should add webhooks to integration", () => {
+      const collection = defineCollection("contacts").deploy();
+      const inboundWebhook = defineWebhook("demo-request")
+        .withTitle("Demo Request")
+        .deploy();
+
+      const integration = defineIntegration("contact-sync")
+        .withApp("hubspot")
+        .withCollection(collection)
+        .withWebhook(inboundWebhook)
+        .deploy();
+
+      expect(integration.webhooks).toHaveProperty("demo-request");
+      expect(integration.webhooks?.["demo-request"]).toEqual(inboundWebhook);
+    });
+
+    it("should support adding webhooks incrementally", () => {
+      const collection = defineCollection("contacts").deploy();
+      const demoWebhook = defineWebhook("demo-request").deploy();
+      const retryWebhook = defineWebhook("retry-request").deploy();
+
+      const integration = defineIntegration("incremental-webhooks")
+        .withApp("hubspot")
+        .withCollection(collection)
+        .addWebhook(demoWebhook)
+        .addWebhooks([retryWebhook])
+        .deploy();
+
+      expect(Object.keys(integration.webhooks || {})).toHaveLength(2);
+      expect(integration.webhooks?.["demo-request"]).toEqual(demoWebhook);
+      expect(integration.webhooks?.["retry-request"]).toEqual(retryWebhook);
+    });
+  });
+
   describe("Error handling", () => {
     it("should throw error when no app is specified", () => {
       const collection = defineCollection("crm").deploy();
@@ -244,6 +280,7 @@ describe("IntegrationBuilder", () => {
       expect(integrations[0].metadata?.appType).toBe("builtin");
       expect(integrations[0].metadata?.collectionName).toBe("crm");
       expect(integrations[0].metadata?.actionCount).toBe(0);
+      expect(integrations[0].metadata?.webhookCount).toBe(0);
     });
 
     it("should track metadata correctly", () => {
@@ -251,18 +288,21 @@ describe("IntegrationBuilder", () => {
       const crm = defineCollection("crm").deploy();
       const syncAction = defineAction("sync").deploy();
       const exportAction = defineAction("export").deploy();
+      const inboundWebhook = defineWebhook("demo-request").deploy();
 
       defineIntegration("metadata-test")
         .withCustomApp(customApp)
         .withCollection(crm)
         .addAction(syncAction)
         .addAction(exportAction)
+        .addWebhook(inboundWebhook)
         .deploy();
 
       const integrations = getIntegrations();
       expect(integrations[0].metadata?.appType).toBe("custom");
       expect(integrations[0].metadata?.collectionName).toBe("crm");
       expect(integrations[0].metadata?.actionCount).toBe(2);
+      expect(integrations[0].metadata?.webhookCount).toBe(1);
     });
 
     it("should generate unique IDs for integrations", () => {

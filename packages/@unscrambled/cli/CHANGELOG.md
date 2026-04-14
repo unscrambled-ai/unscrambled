@@ -1,5 +1,13 @@
 # @unscrambled/cli
 
+## 0.4.0
+
+### Minor Changes
+
+- 7145395: Add `app get` command to fetch app details from the Unscrambled API
+
+  New CLI command `un app get <appName>` retrieves app details for a given environment. Supports `--env` and `--output json` options.
+
 ## 0.3.0
 
 ### Minor Changes

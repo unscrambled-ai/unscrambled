@@ -1,7 +1,12 @@
 import { Command, Option } from "commander";
 import { terminal } from "terminal-kit";
 
-import { getEnvOption, resolveEnvName } from "../../shared/commandUtils";
+import {
+  getEnvOption,
+  resolveEnvName,
+  writeError,
+  writeJson,
+} from "../../shared/commandUtils";
 import { getApiKey } from "../../shared/getApiKey";
 import { getBaseUrl } from "../../shared/getBaseUrl";
 import {
@@ -29,6 +34,14 @@ type AppRequestOptions = {
   body?: string;
   output: OutputFormat;
 };
+
+type AppGetOptions = {
+  env?: string;
+  environment?: string;
+  output: OutputFormat;
+};
+
+type AppDetailResponse = Record<string, unknown>;
 
 export { parseHeaderOption, parseQueryOption };
 
@@ -67,6 +80,72 @@ Examples:
   unscrambled app request salesforce --env prod --path /services/data/v60.0/sobjects/Account --method GET --output json
 `
   );
+
+async function fetchAppDetail(
+  envName: string,
+  appName: string
+): Promise<AppDetailResponse | null> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("Authentication required");
+  }
+
+  const response = await fetch(
+    `${getBaseUrl()}/api/v1/projects/default/envs/${envName}/apps/${appName}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  return await readApiResponse<AppDetailResponse>(
+    response,
+    `get ${appName} app`
+  );
+}
+
+app
+  .command("get")
+  .description("Get app details from the Unscrambled API")
+  .argument("<appName>", "App name, for example hubspot or salesforce")
+  .addOption(
+    new Option("-e, --env <envName>", "Environment name (e.g. dev, prod)")
+  )
+  .addOption(
+    new Option("-o, --output <format>", "Output format")
+      .choices(["text", "json"])
+      .default("text")
+  )
+  .action(async (appName: string, options: AppGetOptions) => {
+    requireAuth();
+
+    try {
+      const envName = resolveEnvName(getEnvOption(options));
+      const detail = await fetchAppDetail(envName, appName);
+
+      if (!detail) {
+        throw new Error(
+          `App '${appName}' was not found in environment '${envName}'.`
+        );
+      }
+
+      if (options.output === "json") {
+        writeJson(detail);
+        return;
+      }
+
+      terminal.bold(`${appName} (${envName}):\n\n`);
+      terminal(`${JSON.stringify(detail, null, 2)}\n`);
+    } catch (error) {
+      writeError(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    }
+  });
 
 app
   .command("request")
