@@ -313,6 +313,51 @@ describe("httpRequest", () => {
         expect(httpError.response.data.user_id).toBe("12345");
       }
     });
+
+    it("should include the upstream request id for non-2xx proxy responses", async () => {
+      const errorLogs: string[] = [];
+      const originalConsoleError = console.error;
+      console.error = (...args: any[]) => {
+        errorLogs.push(args.map(String).join(" "));
+      };
+
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        headers: {
+          entries: () =>
+            [
+              ["content-type", "application/json"],
+              ["x-amzn-requestid", "req-123-proxy"],
+            ][Symbol.iterator](),
+        },
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              message: "Header templates detected in headers",
+            })
+          ),
+      });
+
+      try {
+        await httpRequest({
+          method: "POST",
+          url: "https://api.example.com/test",
+        });
+        expect.fail("Should have thrown");
+      } catch (error) {
+        console.error = originalConsoleError;
+
+        expect(isHttpProxyResponseError(error)).toBe(true);
+        const httpError = error as HttpProxyResponseError;
+        expect(httpError.requestId).toBe("req-123-proxy");
+        expect(httpError.message).toContain("requestId: req-123-proxy");
+        expect(
+          errorLogs.some((log) => log.includes("requestId: req-123-proxy"))
+        ).toBe(true);
+      }
+    });
   });
 });
 

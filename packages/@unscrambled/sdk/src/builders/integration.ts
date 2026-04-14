@@ -4,6 +4,7 @@ import type {
   Collection,
   Action,
   SyncSchedule,
+  Webhook,
 } from "../types";
 import { registerIntegration } from "../registry";
 
@@ -17,6 +18,7 @@ export class IntegrationBuilder {
   private app?: Integration["app"];
   private collection?: Collection;
   private actions: Record<string, Action> = {};
+  private webhooks: Record<string, Webhook> = {};
   private syncSchedules?: SyncSchedule[];
   private readOnly?: boolean;
   private writeOnly?: boolean;
@@ -66,6 +68,14 @@ export class IntegrationBuilder {
     if (actions) {
       const actionList = Object.values(actions) as Action[];
       builder.withActions(actionList);
+    }
+    const webhooks =
+      source instanceof IntegrationBuilder
+        ? ((source as any).webhooks as Record<string, Webhook>)
+        : ((source as any).webhooks as Record<string, Webhook> | undefined);
+    if (webhooks) {
+      const webhookList = Object.values(webhooks) as Webhook[];
+      builder.withWebhooks(webhookList);
     }
     const syncSchedules =
       source instanceof IntegrationBuilder
@@ -189,6 +199,62 @@ export class IntegrationBuilder {
       : (actionsOrArray as Action[]);
     actions.forEach((action) => {
       this.actions[action.name] = action;
+    });
+    return this;
+  }
+
+  /**
+   * Set the webhooks on this integration (override any previously set webhooks)
+   */
+  withWebhook(webhook: Webhook): this;
+  withWebhook(...webhooks: Webhook[]): this;
+  withWebhook(...webhooks: Webhook[]): this {
+    this.webhooks = {};
+    webhooks.forEach((webhook) => {
+      this.webhooks[webhook.name] = webhook;
+    });
+    return this;
+  }
+
+  /**
+   * Set multiple webhooks on this integration (override any previously set webhooks)
+   */
+  withWebhooks(...webhooks: Webhook[]): this;
+  withWebhooks(webhooks: Webhook[]): this;
+  withWebhooks(...webhooksOrArray: Webhook[] | [Webhook[]]): this {
+    const webhooks = Array.isArray(webhooksOrArray[0])
+      ? (webhooksOrArray[0] as Webhook[])
+      : (webhooksOrArray as Webhook[]);
+    this.webhooks = {};
+    webhooks.forEach((webhook) => {
+      this.webhooks[webhook.name] = webhook;
+    });
+    return this;
+  }
+
+  /**
+   * Add one or more webhooks (incremental, does not clear existing)
+   */
+  addWebhook(webhook: Webhook): this;
+  addWebhook(...webhooks: Webhook[]): this;
+  addWebhook(...webhooks: Webhook[]): this {
+    webhooks.forEach((webhook) => {
+      this.webhooks[webhook.name] = webhook;
+    });
+    return this;
+  }
+
+  /**
+   * Add multiple webhooks (incremental, does not clear existing)
+   */
+  addWebhooks(...webhooks: Webhook[]): this;
+  addWebhooks(webhooks: Webhook[]): this;
+  addWebhooks(...webhooksOrArray: Webhook[] | [Webhook[]]): this {
+    const webhooks = Array.isArray(webhooksOrArray[0])
+      ? (webhooksOrArray[0] as Webhook[])
+      : (webhooksOrArray as Webhook[]);
+    webhooks.forEach((webhook) => {
+      this.webhooks[webhook.name] = webhook;
     });
     return this;
   }
@@ -433,6 +499,7 @@ export class IntegrationBuilder {
       app: this.app,
       collection: this.collection,
       actions: this.actions,
+      webhooks: Object.keys(this.webhooks).length > 0 ? this.webhooks : undefined,
       syncSchedules: this.syncSchedules,
       readOnly: this.readOnly,
       writeOnly: this.writeOnly,
@@ -446,6 +513,7 @@ export class IntegrationBuilder {
       appType: this.app.type,
       collectionName: this.collection.name,
       actionCount: Object.keys(this.actions).length,
+      webhookCount: Object.keys(this.webhooks).length,
     });
 
     return integration;

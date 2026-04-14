@@ -103,6 +103,7 @@ export interface Integration {
   };
   collection: Collection;
   actions: Record<string, Action>;
+  webhooks?: Record<string, Webhook>;
   syncSchedules?: SyncSchedule[];
   readOnly?: boolean; // If true, entire integration is read-only (skip push operations)
   writeOnly?: boolean; // If true, entire integration is write-only (skip pull operations)
@@ -154,12 +155,30 @@ export type RunFunc = (props: RunFuncProps) => Promise<void>;
 // Action types
 export type ActionType = "FULL_SYNC" | "INCREMENTAL_SYNC";
 
+export interface ActionTrigger {
+  webhook?: string;
+  pollingFrequency?: number;
+}
+
+// Webhook definition
+export interface Webhook {
+  name: string;
+  title?: string;
+  apps?: string[];
+  customApps?: string[];
+  variables?: AppVariable[];
+  secrets?: AppSecret[];
+}
+
 // Action definition
 export interface Action {
   name: string;
   title?: string;
   description?: string;
   type?: ActionType;
+  trigger?: ActionTrigger;
+  apps?: string[];
+  customApps?: string[];
   variables?: AppVariable[];
   secrets?: AppSecret[];
   run?: RunFunc;

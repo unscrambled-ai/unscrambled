@@ -79,15 +79,58 @@ export type HttpProxyResponse = {
   httpRequestId?: string;
 };
 
+const REQUEST_ID_HEADER_NAMES = [
+  "x-request-id",
+  "x-amzn-requestid",
+  "x-amz-request-id",
+  "x-correlation-id",
+  "x-vercel-id",
+] as const;
+
+function getResponseRequestId(response: HttpProxyResponse): string | undefined {
+  if (response.httpRequestId) {
+    return response.httpRequestId;
+  }
+
+  const headers = response.headers;
+  if (!headers || typeof headers !== "object") {
+    return undefined;
+  }
+
+  const normalizedHeaders = Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
+  );
+
+  for (const headerName of REQUEST_ID_HEADER_NAMES) {
+    const headerValue = normalizedHeaders[headerName];
+    if (typeof headerValue === "string" && headerValue.trim()) {
+      return headerValue;
+    }
+  }
+
+  return undefined;
+}
+
+function formatRequestIdSuffix(requestId?: string): string {
+  return requestId ? ` (requestId: ${requestId})` : "";
+}
+
 /**
  * @public
  */
 export class HttpProxyResponseError extends Error {
   response: HttpProxyResponse;
+  requestId?: string;
 
   constructor(response: HttpProxyResponse) {
-    super(`HttpProxyResponseError: ${response.status} ${response.statusText}`);
+    const requestId = getResponseRequestId(response);
+    super(
+      `HttpProxyResponseError: ${response.status} ${response.statusText}${formatRequestIdSuffix(
+        requestId
+      )}`
+    );
     this.response = response;
+    this.requestId = requestId;
 
     Object.setPrototypeOf(this, HttpProxyResponseError.prototype);
   }
@@ -318,6 +361,13 @@ export const httpRequest: HttpRequest = async (props) => {
       if (!response.ok) {
         const elapsed = Date.now() - requestStartTime;
         const errorText = await response.text();
+        const responseHeaders = Object.fromEntries(response.headers.entries());
+        const requestId = getResponseRequestId({
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders,
+          data: errorText,
+        });
 
         // Decide retry based on categorization utility
         const isRetriableHttpStatus =
@@ -332,7 +382,7 @@ export const httpRequest: HttpRequest = async (props) => {
             throw new HttpProxyResponseError({
               status: response.status,
               statusText: response.statusText,
-              headers: Object.fromEntries(response.headers.entries()),
+              headers: responseHeaders,
               data: errorText,
             });
           }
@@ -343,13 +393,15 @@ export const httpRequest: HttpRequest = async (props) => {
         // Non-retriable HTTP error → surface as HttpProxyResponseError so callers
         // can handle uniformly and we do not retry in our catch block below.
         console.error(
-          `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy]`
+          `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy]${formatRequestIdSuffix(
+            requestId
+          )}`
         );
         console.error("Response:", errorText);
         throw new HttpProxyResponseError({
           status: response.status,
           statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries()),
+          headers: responseHeaders,
           data: errorText,
         });
       }
@@ -369,8 +421,11 @@ export const httpRequest: HttpRequest = async (props) => {
         continue;
       } else if (proxyResponse.status < 200 || proxyResponse.status >= 300) {
         const elapsed = Date.now() - requestStartTime;
+        const requestId = getResponseRequestId(proxyResponse);
         console.error(
-          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)`
+          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)${formatRequestIdSuffix(
+            requestId
+          )}`
         );
 
         const dataForLogging =

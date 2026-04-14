@@ -4,6 +4,7 @@ import type {
   CustomApp,
   Integration,
   Action,
+  Webhook,
 } from "../types";
 
 /**
@@ -42,12 +43,18 @@ export interface ActionRegistryEntry extends RegistryEntry {
   action: Action;
 }
 
+export interface WebhookRegistryEntry extends RegistryEntry {
+  type: "webhook";
+  webhook: Webhook;
+}
+
 export type RegistryItem =
   | ModelRegistryEntry
   | CollectionRegistryEntry
   | CustomAppRegistryEntry
   | IntegrationRegistryEntry
-  | ActionRegistryEntry;
+  | ActionRegistryEntry
+  | WebhookRegistryEntry;
 
 /**
  * Main registry class that tracks all SDK elements
@@ -156,6 +163,24 @@ class SDKRegistry {
   }
 
   /**
+   * Register a webhook in the registry
+   */
+  registerWebhook(webhook: Webhook, metadata?: Record<string, any>): string {
+    const id = this.generateId("webhook", webhook.name);
+    const entry: WebhookRegistryEntry = {
+      id,
+      name: webhook.name,
+      type: "webhook",
+      webhook,
+      createdAt: new Date(),
+      metadata,
+    };
+
+    this.addEntry(entry);
+    return id;
+  }
+
+  /**
    * Get all registered items
    */
   getAllItems(): RegistryItem[] {
@@ -202,6 +227,13 @@ class SDKRegistry {
    */
   getActions(): ActionRegistryEntry[] {
     return this.getItemsByType<ActionRegistryEntry>("action");
+  }
+
+  /**
+   * Get all webhooks
+   */
+  getWebhooks(): WebhookRegistryEntry[] {
+    return this.getItemsByType<WebhookRegistryEntry>("webhook");
   }
 
   /**
@@ -335,6 +367,16 @@ export function registerAction(
 }
 
 /**
+ * Register a webhook
+ */
+export function registerWebhook(
+  webhook: Webhook,
+  metadata?: Record<string, any>
+): string {
+  return registry.registerWebhook(webhook, metadata);
+}
+
+/**
  * Get all registered models
  */
 export function getModels(): ModelRegistryEntry[] {
@@ -367,6 +409,13 @@ export function getIntegrations(): IntegrationRegistryEntry[] {
  */
 export function getActions(): ActionRegistryEntry[] {
   return registry.getActions();
+}
+
+/**
+ * Get all registered webhooks
+ */
+export function getWebhooks(): WebhookRegistryEntry[] {
+  return registry.getWebhooks();
 }
 
 /**

@@ -9,9 +9,12 @@ import {
 } from "./index";
 import {
   clearRegistry,
+  defineAction,
   defineModel,
   defineCollection,
+  defineIntegration,
   defineOAuth2CustomApp,
+  defineWebhook,
 } from "../";
 
 // Mock fetch for testing to avoid real HTTP requests
@@ -105,6 +108,71 @@ describe("Handlers", () => {
       expect(body.data.message).toContain("Deployment completed successfully");
       expect(body.data.environment).toBe("staging");
       expect(body.data.dryRun).toBe(true);
+    });
+
+    it("should serialize webhooks and webhook-triggered actions during deploy", async () => {
+      const collection = defineCollection("crm").deploy();
+      const inboundWebhook = defineWebhook("demo-request")
+        .withTitle("Demo Request")
+        .withApp("hubspot")
+        .addSecret("signing_secret")
+        .deploy();
+
+      const action = defineAction("process-lead")
+        .withTitle("Process Lead")
+        .withApp("hubspot")
+        .withWebhookTrigger(inboundWebhook)
+        .deploy();
+
+      defineIntegration("lead-routing")
+        .withApp("hubspot")
+        .withCollection(collection)
+        .withAction(action)
+        .withWebhook(inboundWebhook)
+        .deploy();
+
+      const event: HandlerEvent = {
+        operation: "deploy",
+        payload: {
+          environment: "staging",
+          dryRun: true,
+          baseUrl: "https://api.test.com",
+        },
+      };
+      const context = createMockHandlerContext();
+
+      const result = (await handler(event, context)) as HandlerResponse;
+      const body = JSON.parse(result.body) as InternalResponse;
+
+      expect(result.statusCode).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.deployment.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "webhook",
+            webhookProps: expect.objectContaining({
+              name: "demo-request",
+              apps: ["hubspot"],
+            }),
+          }),
+          expect.objectContaining({
+            type: "action",
+            actionProps: expect.objectContaining({
+              name: "process-lead",
+              apps: ["hubspot"],
+              trigger: { webhook: "demo-request" },
+            }),
+          }),
+          expect.objectContaining({
+            type: "integration",
+            integrationProps: expect.objectContaining({
+              name: "lead-routing",
+              webhooks: ["demo-request"],
+              actions: ["process-lead"],
+            }),
+          }),
+        ])
+      );
     });
 
     it("should handle unknown operation", async () => {

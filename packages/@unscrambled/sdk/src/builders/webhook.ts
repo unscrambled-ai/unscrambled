@@ -1,38 +1,6 @@
-import type {
-  Action,
-  ActionTrigger,
-  ActionType,
-  AppVariable,
-  AppSecret,
-  CustomApp,
-  RunFunc,
-  RunFuncProps,
-  RunFuncIntegration,
-  RunFuncManagedUser,
-  Auths,
-  Webhook,
-} from "../types";
-import { registerAction } from "../registry";
+import type { AppSecret, AppVariable, CustomApp, Webhook } from "../types";
+import { registerWebhook } from "../registry";
 
-// Global action index to store run functions (similar to legacy package)
-declare global {
-  var actionIndex: { [name: string]: RunFunc };
-}
-
-// Initialize global action index if it doesn't exist
-if (typeof globalThis !== "undefined") {
-  globalThis.actionIndex = globalThis.actionIndex || {};
-}
-
-function getCustomAppName(customApp: CustomApp | string): string {
-  return typeof customApp === "string" ? customApp : customApp.name;
-}
-
-function uniqueValues(values: string[]): string[] {
-  return [...new Set(values)];
-}
-
-// Type helpers for extracting variable/secret configurations
 type VariableConfig<
   Name extends string = string,
   Required extends boolean = boolean
@@ -54,68 +22,27 @@ type SecretConfig<
   required: Required;
 };
 
-// Extract types from variable/secret arrays
-type ExtractVariableNames<T extends readonly VariableConfig[]> =
-  T[number]["name"];
-type ExtractSecretNames<T extends readonly SecretConfig[]> = T[number]["name"];
-
-// Create typed variable/secret objects based on required status
-type TypedVariables<T extends readonly VariableConfig[]> = {
-  [K in ExtractVariableNames<T>]: Extract<
-    T[number],
-    { name: K }
-  >["required"] extends true
-    ? string
-    : string | null;
-};
-
-type TypedSecrets<T extends readonly SecretConfig[]> = {
-  [K in ExtractSecretNames<T>]: Extract<
-    T[number],
-    { name: K }
-  >["required"] extends true
-    ? string
-    : string | null;
-};
-
-// Type-safe run function props
-export interface TypedRunFuncProps<
-  V extends readonly VariableConfig[],
-  S extends readonly SecretConfig[]
-> {
-  data?: any;
-  context?: any;
-  auths: Auths;
-  variables: TypedVariables<V>;
-  secrets: TypedSecrets<S>;
-  webhook: string | null;
-  integration: RunFuncIntegration | null;
-  managedUser: RunFuncManagedUser | null;
+function getCustomAppName(customApp: CustomApp | string): string {
+  return typeof customApp === "string" ? customApp : customApp.name;
 }
 
-// Type-safe run function
-export type TypedRunFunc<
-  V extends readonly VariableConfig[],
-  S extends readonly SecretConfig[]
-> = (props: TypedRunFuncProps<V, S>) => Promise<void>;
+function uniqueValues(values: string[]): string[] {
+  return [...new Set(values)];
+}
 
 /**
- * Action Builder - fluent API for creating actions with type safety
+ * Webhook Builder - fluent API for creating deployable webhooks.
  */
-export class ActionBuilder<
+export class WebhookBuilder<
   V extends readonly VariableConfig[] = [],
   S extends readonly SecretConfig[] = []
 > {
   private name: string;
   private title?: string;
-  private description?: string;
-  private type?: ActionType;
-  private trigger?: ActionTrigger;
   private apps: string[] = [];
   private customApps: string[] = [];
   private variables: V;
   private secrets: S;
-  private runFunction?: TypedRunFunc<V, S>;
 
   constructor(name: string) {
     this.name = name;
@@ -123,10 +50,7 @@ export class ActionBuilder<
     this.secrets = [] as unknown as S;
   }
 
-  /**
-   * Change the builder's name. Useful when duplicating an action.
-   */
-  withName(name: string): ActionBuilder<V, S> {
+  withName(name: string): WebhookBuilder<V, S> {
     const newBuilder = Object.create(Object.getPrototypeOf(this));
     return Object.assign(newBuilder, {
       ...this,
@@ -134,30 +58,8 @@ export class ActionBuilder<
     });
   }
 
-  withTitle(title: string): ActionBuilder<V, S> {
+  withTitle(title: string): this {
     this.title = title;
-    return this;
-  }
-
-  withDescription(description: string): ActionBuilder<V, S> {
-    this.description = description;
-    return this;
-  }
-
-  withType(type: ActionType): ActionBuilder<V, S> {
-    this.type = type;
-    return this;
-  }
-
-  withWebhookTrigger(webhook: Webhook | string): ActionBuilder<V, S> {
-    this.trigger = {
-      webhook: typeof webhook === "string" ? webhook : webhook.name,
-    };
-    return this;
-  }
-
-  withPollingTrigger(pollingFrequency: number): ActionBuilder<V, S> {
-    this.trigger = { pollingFrequency };
     return this;
   }
 
@@ -243,7 +145,7 @@ export class ActionBuilder<
       defaultValue?: string;
       required?: Required;
     }
-  ): ActionBuilder<[...V, VariableConfig<Name, Required>], S> {
+  ): WebhookBuilder<[...V, VariableConfig<Name, Required>], S> {
     const newVariable: VariableConfig<Name, Required> = {
       name,
       title: options?.title,
@@ -264,7 +166,7 @@ export class ActionBuilder<
 
   addVariables<NewVars extends readonly VariableConfig[]>(
     variables: NewVars
-  ): ActionBuilder<[...V, ...NewVars], S> {
+  ): WebhookBuilder<[...V, ...NewVars], S> {
     const newBuilder = Object.create(Object.getPrototypeOf(this));
     return Object.assign(newBuilder, {
       ...this,
@@ -272,17 +174,14 @@ export class ActionBuilder<
     });
   }
 
-  /**
-   * Overwrite variables with the provided array (does not append).
-   */
   withVariables<NewV extends readonly VariableConfig[]>(
     variables: NewV
-  ): ActionBuilder<NewV, S>;
-  withVariables(variables: string[]): ActionBuilder<VariableConfig[], S>;
-  withVariables(variables: AppVariable[]): ActionBuilder<VariableConfig[], S>;
+  ): WebhookBuilder<NewV, S>;
+  withVariables(variables: string[]): WebhookBuilder<VariableConfig[], S>;
+  withVariables(variables: AppVariable[]): WebhookBuilder<VariableConfig[], S>;
   withVariables(
     variables: readonly VariableConfig[] | string[] | AppVariable[]
-  ): ActionBuilder<any, S> {
+  ): WebhookBuilder<any, S> {
     const newBuilder = Object.create(Object.getPrototypeOf(this));
     const mappedVars = variables.map((v): VariableConfig => {
       if (typeof v === "string") {
@@ -309,7 +208,7 @@ export class ActionBuilder<
       description?: string;
       required?: Required;
     }
-  ): ActionBuilder<V, [...S, SecretConfig<Name, Required>]> {
+  ): WebhookBuilder<V, [...S, SecretConfig<Name, Required>]> {
     const newSecret: SecretConfig<Name, Required> = {
       name,
       title: options?.title,
@@ -329,7 +228,7 @@ export class ActionBuilder<
 
   addSecrets<NewSecrets extends readonly SecretConfig[]>(
     secrets: NewSecrets
-  ): ActionBuilder<V, [...S, ...NewSecrets]> {
+  ): WebhookBuilder<V, [...S, ...NewSecrets]> {
     const newBuilder = Object.create(Object.getPrototypeOf(this));
     return Object.assign(newBuilder, {
       ...this,
@@ -337,17 +236,14 @@ export class ActionBuilder<
     });
   }
 
-  /**
-   * Overwrite secrets with the provided array (does not append).
-   */
   withSecrets<NewS extends readonly SecretConfig[]>(
     secrets: NewS
-  ): ActionBuilder<V, NewS>;
-  withSecrets(secrets: string[]): ActionBuilder<V, SecretConfig[]>;
-  withSecrets(secrets: AppSecret[]): ActionBuilder<V, SecretConfig[]>;
+  ): WebhookBuilder<V, NewS>;
+  withSecrets(secrets: string[]): WebhookBuilder<V, SecretConfig[]>;
+  withSecrets(secrets: AppSecret[]): WebhookBuilder<V, SecretConfig[]>;
   withSecrets(
     secrets: readonly SecretConfig[] | string[] | AppSecret[]
-  ): ActionBuilder<V, any> {
+  ): WebhookBuilder<V, any> {
     const newBuilder = Object.create(Object.getPrototypeOf(this));
     const mappedSecrets = secrets.map((s): SecretConfig => {
       if (typeof s === "string") {
@@ -366,83 +262,52 @@ export class ActionBuilder<
     });
   }
 
-  /**
-   * Set the function to run when this action is executed
-   */
-  withRun(runFunction: TypedRunFunc<V, S>): ActionBuilder<V, S> {
-    this.runFunction = runFunction;
-    return this;
-  }
-
-  /**
-   * Create a builder from an existing action or builder (copy constructor pattern).
-   */
   static from<
     V extends readonly VariableConfig[],
     S extends readonly SecretConfig[]
-  >(source: Action | ActionBuilder<V, S>): ActionBuilder<V, S> {
-    if (source instanceof ActionBuilder) {
-      const builder = new ActionBuilder<V, S>(source.name);
+  >(source: Webhook | WebhookBuilder<V, S>): WebhookBuilder<V, S> {
+    if (source instanceof WebhookBuilder) {
+      const builder = new WebhookBuilder<V, S>(source.name);
       builder.title = source.title;
-      builder.description = source.description;
-      builder.type = source.type;
-      builder.trigger = source.trigger;
       builder.apps = [...source.apps];
       builder.customApps = [...source.customApps];
       builder.variables = [...source.variables] as unknown as V;
       builder.secrets = [...source.secrets] as unknown as S;
-      builder.runFunction = source.runFunction;
       return builder;
     }
 
-    const action = source as Action;
-    const builder = new ActionBuilder(action.name) as any;
-    if (action.title) builder.title = action.title;
-    if (action.description) builder.description = action.description;
-    if (action.type) builder.type = action.type;
-    if (action.trigger) builder.trigger = action.trigger;
-    if (action.apps) builder.apps = [...action.apps];
-    if (action.customApps) builder.customApps = [...action.customApps];
-    if (action.variables && action.variables.length > 0) {
-      const newBuilder = builder.withVariables(action.variables);
-      if (action.secrets && action.secrets.length > 0) {
-        if (action.run) newBuilder.runFunction = action.run as any;
-        return newBuilder.withSecrets(action.secrets) as any;
-      }
-      if (action.run) newBuilder.runFunction = action.run as any;
-      return newBuilder;
+    const builder = new WebhookBuilder(source.name) as any;
+    if (source.title) builder.title = source.title;
+    if (source.apps) builder.apps = [...source.apps];
+    if (source.customApps) builder.customApps = [...source.customApps];
+    if (source.variables && source.variables.length > 0) {
+      builder.variables = source.variables.map((variable) => ({
+        name: variable.name,
+        title: variable.title,
+        description: variable.description,
+        defaultValue: variable.defaultValue,
+        required: variable.required ?? false,
+      }));
     }
-    if (action.secrets && action.secrets.length > 0) {
-      const newBuilder = builder.withSecrets(action.secrets);
-      if (action.run) newBuilder.runFunction = action.run as any;
-      return newBuilder;
+    if (source.secrets && source.secrets.length > 0) {
+      builder.secrets = source.secrets.map((secret) => ({
+        name: secret.name,
+        title: secret.title,
+        description: secret.description,
+        required: secret.required ?? false,
+      }));
     }
-    if (action.run) builder.runFunction = action.run as any;
     return builder;
   }
 
-  /**
-   * Backwards-compatible alias of from() for actions.
-   */
-  static fromAction(action: Action): ActionBuilder<any, any> {
-    return ActionBuilder.from(action);
+  duplicateAs(newName: string): WebhookBuilder<V, S> {
+    return WebhookBuilder.from(this).withName(newName);
   }
 
-  /**
-   * Duplicate this builder into a new one with a different name.
-   * Title and other fields can be overridden on the returned builder.
-   */
-  duplicateAs(newName: string): ActionBuilder<V, S> {
-    return ActionBuilder.from(this).withName(newName);
-  }
-
-  deploy(): Action {
-    const action: Action = {
+  deploy(): Webhook {
+    const webhook: Webhook = {
       name: this.name,
       title: this.title,
-      description: this.description,
-      type: this.type,
-      trigger: this.trigger,
       apps: this.apps.length > 0 ? [...this.apps] : undefined,
       customApps: this.customApps.length > 0 ? [...this.customApps] : undefined,
       variables:
@@ -450,12 +315,15 @@ export class ActionBuilder<
           ? this.variables.map((v) => {
               const variable: AppVariable = { name: v.name } as AppVariable;
               if (v.title !== undefined) variable.title = v.title;
-              if (v.description !== undefined)
+              if (v.description !== undefined) {
                 variable.description = v.description;
-              if (v.defaultValue !== undefined)
+              }
+              if (v.defaultValue !== undefined) {
                 variable.defaultValue = v.defaultValue;
-              if (v.required !== undefined)
+              }
+              if (v.required !== undefined) {
                 variable.required = v.required as boolean;
+              }
               return variable;
             })
           : undefined,
@@ -464,54 +332,37 @@ export class ActionBuilder<
           ? this.secrets.map((s) => {
               const secret: AppSecret = { name: s.name } as AppSecret;
               if (s.title !== undefined) secret.title = s.title;
-              if (s.description !== undefined)
+              if (s.description !== undefined) {
                 secret.description = s.description;
-              if (s.required !== undefined)
+              }
+              if (s.required !== undefined) {
                 secret.required = s.required as boolean;
+              }
               return secret;
             })
           : undefined,
-      run: this.runFunction as any, // Cast needed due to type variance
     };
 
-    // Store the run function in the global action index (if provided)
-    if (this.runFunction && typeof globalThis !== "undefined") {
-      globalThis.actionIndex = globalThis.actionIndex || {};
-      globalThis.actionIndex[this.name] = this.runFunction as any;
-    }
-
-    // Register the action in the global registry
-    registerAction(action, {
-      builderType: "ActionBuilder",
-      createdBy: "defineAction",
-      hasTrigger: !!this.trigger,
+    registerWebhook(webhook, {
+      builderType: "WebhookBuilder",
+      createdBy: "defineWebhook",
       appCount: this.apps.length,
       customAppCount: this.customApps.length,
       variableCount: this.variables.length,
       secretCount: this.secrets.length,
-      hasRunFunction: !!this.runFunction,
     });
 
-    return action;
+    return webhook;
   }
 }
 
-/**
- * Factory function for creating an action builder
- */
-export interface DefineActionFn {
-  (name: string): ActionBuilder<[], []>;
-  from: (source: Action | ActionBuilder<any, any>) => ActionBuilder<any, any>;
-  fromAction: (action: Action) => ActionBuilder<any, any>;
+export interface DefineWebhookFn {
+  (name: string): WebhookBuilder<[], []>;
+  from: (source: Webhook | WebhookBuilder<any, any>) => WebhookBuilder<any, any>;
 }
 
-export const defineAction: DefineActionFn = ((name: string) =>
-  new ActionBuilder(name)) as DefineActionFn;
+export const defineWebhook: DefineWebhookFn = ((name: string) =>
+  new WebhookBuilder(name)) as DefineWebhookFn;
 
-defineAction.from = (source: Action | ActionBuilder<any, any>) =>
-  ActionBuilder.from(source) as ActionBuilder<any, any>;
-
-defineAction.fromAction = (action: Action) =>
-  ActionBuilder.from(action) as ActionBuilder<any, any>;
-
-// Export type-safe types - these are now defined above, not re-exported
+defineWebhook.from = (source: Webhook | WebhookBuilder<any, any>) =>
+  WebhookBuilder.from(source) as WebhookBuilder<any, any>;
