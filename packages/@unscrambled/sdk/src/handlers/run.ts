@@ -43,8 +43,7 @@ export const handleRun: RunHandler = async (
   const timeout = payloadOrEvent?.timeout ?? "default";
   const fullFrequency = payloadOrEvent?.fullFrequency ?? "default";
 
-  // Example: startRun → env=prod action=myAction runId=abc123 app=none customApp=hubspot managedUser=5862 type=FULL timeout=default
-  console.log(
+  console.debug(
     `startRun → env=${env} action=${actionName} runId=${runId} app=${app} customApp=${customApp} managedUser=${managedUser} fullFrequency=${fullFrequency} type=${type} timeout=${timeout}`
   );
 
@@ -53,7 +52,7 @@ export const handleRun: RunHandler = async (
 
   try {
     if (!payloadOrEvent) {
-      console.error("❌ Missing payload or event data");
+      console.error("Missing payload or event data");
       return {
         success: false,
         error: "Missing payload or event data",
@@ -77,11 +76,10 @@ export const handleRun: RunHandler = async (
         integration: payloadOrEvent.integration,
         managedUser: payloadOrEvent.managedUser,
       };
-      console.log("📦 Using direct event structure for run data");
+      console.debug("Using direct event structure for run data");
     } else {
-      // Assume it's already a proper RunPayload structure
       runData = payloadOrEvent as RunPayload;
-      console.log("📦 Using payload structure for run data");
+      console.debug("Using payload structure for run data");
     }
 
     const {
@@ -98,7 +96,7 @@ export const handleRun: RunHandler = async (
     } = runData;
 
     if (!actionName) {
-      console.error("❌ Missing actionName");
+      console.error("Missing actionName");
       return {
         success: false,
         error: "Missing actionName",
@@ -107,7 +105,7 @@ export const handleRun: RunHandler = async (
     }
 
     if (!runId) {
-      console.error("❌ Missing runId");
+      console.error("Missing runId");
       return {
         success: false,
         error: "Missing runId",
@@ -115,15 +113,11 @@ export const handleRun: RunHandler = async (
       };
     }
 
-    console.log(`📍 Action: ${actionName}`);
-    console.log(`🆔 Run ID: ${runId}`);
-    console.log(
-      `📊 Data keys: ${data ? Object.keys(data).join(", ") : "none"}`
-    );
+    console.debug(`Action: ${actionName}, Run ID: ${runId}, Data keys: ${data ? Object.keys(data).join(", ") : "none"}`);
 
     // Check if global action index exists and has the action
     if (typeof globalThis === "undefined" || !globalThis.actionIndex) {
-      console.error("❌ Action index not initialized");
+      console.error("Action index not initialized");
       return {
         success: false,
         error: "Action index not initialized",
@@ -131,14 +125,14 @@ export const handleRun: RunHandler = async (
       };
     }
 
-    console.log(
-      `🔍 Available actions: ${Object.keys(globalThis.actionIndex).join(", ")}`
+    console.debug(
+      `Available actions: ${Object.keys(globalThis.actionIndex).join(", ")}`
     );
 
     const runFunction = globalThis.actionIndex[actionName];
     if (!runFunction) {
-      console.error(`❌ Unknown action: ${actionName}`);
-      console.error(
+      console.error(`Unknown action: ${actionName}`);
+      console.debug(
         `Known actions: ${Object.keys(globalThis.actionIndex).join(", ")}`
       );
       return {
@@ -148,9 +142,6 @@ export const handleRun: RunHandler = async (
       };
     }
 
-    console.log(`🚀 Executing action function...`);
-
-    // If managedUser is not provided, fetch run function props from the platform
     let effectiveAuths = auths || {};
     let effectiveVariables = variables || {};
     let effectiveSecrets = secrets || {};
@@ -158,12 +149,11 @@ export const handleRun: RunHandler = async (
     let effectiveIntegration = integration || null;
     let effectiveManagedUser = managedUser || null;
 
-    console.log("📊 Initial variables from payload:", variables);
-    console.log("📊 Initial effective variables:", effectiveVariables);
+    console.debug("Initial variables from payload:", variables);
 
     try {
       if (!effectiveManagedUser && runId) {
-        console.log("🔄 Fetching run function props from API...");
+        console.debug("Fetching run function props from API...");
         const { getRunFuncProps } = await import("../platform/run.js");
         const fetched = await getRunFuncProps(runId);
         // Register secrets for log redaction before logging fetched props
@@ -206,8 +196,8 @@ export const handleRun: RunHandler = async (
           // Extract syncId from fetched props and add to context
           const fetchedSyncId = fetched.syncId;
           if (fetchedSyncId) {
-            console.log(
-              `🔍 Handler: Extracted syncId from run-func-props: ${fetchedSyncId}`
+            console.debug(
+              `Extracted syncId from run-func-props: ${fetchedSyncId}`
             );
           }
           // Populate execution/log context with managed user, integration, app/customApp, and syncId
@@ -238,8 +228,8 @@ export const handleRun: RunHandler = async (
             // Add syncId to context if present
             if (fetchedSyncId) {
               ctx.syncId = fetchedSyncId;
-              console.log(
-                `✅ Handler: Set syncId in context: ${fetchedSyncId}`
+              console.debug(
+                `Set syncId in context: ${fetchedSyncId}`
               );
             }
             if (Object.keys(ctx).length > 0) {
@@ -330,7 +320,7 @@ export const handleRun: RunHandler = async (
       throw e;
     }
 
-    console.log("✅ Action executed successfully!");
+    console.info("Action executed successfully!");
 
     try {
       const { finishRun } = await import("../platform/run.js");
@@ -350,28 +340,20 @@ export const handleRun: RunHandler = async (
       logs: [],
     };
   } catch (error) {
-    console.error("💥 Action execution failed!");
+    console.error("Action execution failed!");
 
-    // Handle validation errors specially (check flag since error may have been serialized)
     if (
       error &&
       (error instanceof ValidationError || (error as any).__isValidationError)
     ) {
-      console.error(`💬 Error message:\n${(error as any).message || error}`);
-      // No stack trace for validation errors
+      console.error((error as any).message || error);
     } else if (error instanceof Error) {
-      console.error(`💬 Error message:\n${error.message}`);
-
-      // Log stack trace for non-validation errors
+      console.error(error.message);
       if (error.stack) {
-        console.error(`🔍 Error stack:`);
-        console.error(error.stack);
+        console.debug(error.stack);
       }
     } else {
-      console.error(`🤷 Non-Error object thrown:`);
-      console.error(`   Type: ${typeof error}`);
-      console.error(`   Value:`, error);
-      console.error(`   String representation: ${String(error)}`);
+      console.error(String(error));
     }
 
     let errorMessage =

@@ -132,7 +132,7 @@ dev
       }
     );
 
-    terminal("Deploying latest build to dev...\n");
+    console.debug("Deploying latest build to dev...");
     try {
       await execDeployAndSubscribe(devEnvironment);
     } catch (error) {
@@ -175,10 +175,10 @@ dev
 
     // On startup, fetch any queued runs and enqueue them oldest-first
     try {
-      terminal("\nChecking for queued runs...\n");
+      console.debug("Checking for queued runs...");
       const queued = await getQueuedRuns(devEnvironment);
       if (queued.length > 0) {
-        terminal(`Found ${queued.length} queued run(s). Adding to queue...\n`);
+        console.info(`Found ${queued.length} queued run(s). Adding to queue...`);
         for (const item of queued) {
           pushOperation({
             operation: "run",
@@ -192,7 +192,7 @@ dev
           });
         }
       } else {
-        terminal("No queued runs found.\n");
+        console.debug("No queued runs found.");
       }
     } catch (e) {
       terminal.red("Failed to enqueue queued runs on startup\n");

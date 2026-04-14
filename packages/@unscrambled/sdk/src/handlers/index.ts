@@ -32,12 +32,12 @@ export const handler: DirectHandler = async (
   event: HandlerEvent,
   context: HandlerContext
 ): Promise<HandlerResponse> => {
-  console.log("Handler invoked", { event, context });
+  console.debug("Handler invoked", { event, context });
 
   try {
     const { operation, payload } = event;
 
-    console.log(`Processing operation: ${operation}`, { payload });
+    console.debug(`Processing operation: ${operation}`, { payload });
 
     let internalResponse: InternalResponse;
 
@@ -65,7 +65,7 @@ export const handler: DirectHandler = async (
 
         if (isRealDeploy) {
           // Initialize log capture specifically for deploy operations
-          console.log("🚀 Starting log capture for deploy operation...");
+          console.debug("Starting log capture for deploy operation...");
           const deployLogCapture = initializeLogCapture({
             apiKey: deployData.apiKey,
             baseUrl: deployData.baseUrl,
@@ -78,8 +78,8 @@ export const handler: DirectHandler = async (
               event.deployId ||
               deployData.deployId ||
               `temp-deploy-${Date.now()}`;
-            console.log(
-              "🔗 Setting initial deploy context with deployId:",
+            console.debug(
+              "Setting initial deploy context with deployId:",
               initialDeployId
             );
             setLogContext({ deployId: initialDeployId });
@@ -92,8 +92,8 @@ export const handler: DirectHandler = async (
               internalResponse.data?.deployment?.deploymentId &&
               internalResponse.data.deployment.deploymentId !== initialDeployId
             ) {
-              console.log(
-                "🔗 Updating context with real deployId from API response:",
+              console.debug(
+                "Updating context with real deployId from API response:",
                 internalResponse.data.deployment.deploymentId
               );
               setLogContext({
@@ -103,26 +103,26 @@ export const handler: DirectHandler = async (
           } finally {
             // Ensure final log upload before stopping
             if (deployLogCapture && deployLogCapture.getLogCount() > 0) {
-              console.log("📤 Final log flush before deploy completion...");
+              console.debug("Final log flush before deploy completion...");
               await deployLogCapture.flush();
               // Small delay to allow upload to complete
               await new Promise((resolve) => setTimeout(resolve, 100));
             }
 
             // Completely stop log capture after deploy completes
-            console.log("🛑 Stopping log capture for deploy operation...");
+            console.debug("Stopping log capture for deploy operation...");
             stopLogCapture();
           }
         } else {
           // No log capture for dry runs or simple operations
-          console.log("ℹ️ Skipping log capture for this deploy operation");
+          console.debug("Skipping log capture for this deploy operation");
           internalResponse = await handleDeploy(payload);
         }
         break;
 
       case "run":
         // Initialize log capture specifically for run operations
-        console.log("🚀 Starting log capture for run operation...");
+        console.debug("Starting log capture for run operation...");
         const runData = payload || event;
         const logCapture = initializeLogCapture({
           apiKey: runData.apiKey,
@@ -214,7 +214,7 @@ export const handler: DirectHandler = async (
 
       case "getAuthRequestUrl":
         // Initialize log capture for OAuth operations
-        console.log("🚀 Starting log capture for OAuth getAuthRequestUrl...");
+        console.debug("Starting log capture for OAuth getAuthRequestUrl...");
         const getAuthData = payload || event;
         const getAuthLogCapture = initializeLogCapture({
           apiKey: getAuthData.apiKey,
@@ -224,8 +224,8 @@ export const handler: DirectHandler = async (
 
         // Set authorizerActivityId in log context if provided
         if (getAuthData.authorizerActivityId) {
-          console.log(
-            `🔗 Setting authorizerActivityId in log context: ${getAuthData.authorizerActivityId}`
+          console.debug(
+            `Setting authorizerActivityId in log context: ${getAuthData.authorizerActivityId}`
           );
           setLogContext({
             authorizerActivityId: getAuthData.authorizerActivityId,
@@ -271,7 +271,7 @@ export const handler: DirectHandler = async (
 
       case "requestAccessToken":
         // Initialize log capture for OAuth operations
-        console.log("🚀 Starting log capture for OAuth requestAccessToken...");
+        console.debug("Starting log capture for OAuth requestAccessToken...");
         const requestTokenData = payload || event;
         const requestTokenLogCapture = initializeLogCapture({
           apiKey: requestTokenData.apiKey,
@@ -281,8 +281,8 @@ export const handler: DirectHandler = async (
 
         // Set authorizerActivityId in log context if provided
         if (requestTokenData.authorizerActivityId) {
-          console.log(
-            `🔗 Setting authorizerActivityId in log context: ${requestTokenData.authorizerActivityId}`
+          console.debug(
+            `Setting authorizerActivityId in log context: ${requestTokenData.authorizerActivityId}`
           );
           setLogContext({
             authorizerActivityId: requestTokenData.authorizerActivityId,
@@ -329,7 +329,7 @@ export const handler: DirectHandler = async (
 
       case "refreshAccessToken":
         // Initialize log capture for OAuth operations
-        console.log("🚀 Starting log capture for OAuth refreshAccessToken...");
+        console.debug("Starting log capture for OAuth refreshAccessToken...");
         const refreshTokenData = payload || event;
         const refreshTokenLogCapture = initializeLogCapture({
           apiKey: refreshTokenData.apiKey,
@@ -339,8 +339,8 @@ export const handler: DirectHandler = async (
 
         // Set authorizerActivityId in log context if provided
         if (refreshTokenData.authorizerActivityId) {
-          console.log(
-            `🔗 Setting authorizerActivityId in log context: ${refreshTokenData.authorizerActivityId}`
+          console.debug(
+            `Setting authorizerActivityId in log context: ${refreshTokenData.authorizerActivityId}`
           );
           setLogContext({
             authorizerActivityId: refreshTokenData.authorizerActivityId,

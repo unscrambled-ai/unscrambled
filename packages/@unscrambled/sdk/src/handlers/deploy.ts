@@ -95,53 +95,39 @@ interface DeploymentItem {
 function transformRegistryToDeploymentSchema(
   registryData: any
 ): DeploymentItem[] {
-  console.log("🔄 Starting registry transformation...");
+  console.debug("Starting registry transformation...");
   const deploymentItems: DeploymentItem[] = [];
 
-  // Safety check for registry data
   if (
     !registryData ||
     !registryData.items ||
     !Array.isArray(registryData.items)
   ) {
     console.warn(
-      "⚠️ Invalid registry data provided to transformRegistryToDeploymentSchema"
+      "Invalid registry data provided to transformRegistryToDeploymentSchema"
     );
-    console.warn("Registry data structure:", registryData);
+    console.debug("Registry data structure:", registryData);
     return deploymentItems;
   }
 
-  console.log(`📋 Processing ${registryData.items.length} registry items...`);
+  console.debug(`Processing ${registryData.items.length} registry items...`);
 
   for (const [index, item] of registryData.items.entries()) {
-    console.log(
-      `\n🔍 Processing item ${index + 1}/${registryData.items.length}:`
-    );
-    console.log(`   Type: ${item?.type || "unknown"}`);
-    console.log(
-      `   Name: ${
-        item?.collection?.name ||
-        item?.customApp?.name ||
-        item?.integration?.name ||
-        item?.action?.name ||
-        item?.webhook?.name ||
-        item?.model?.name ||
-        "unnamed"
-      }`
+    console.debug(
+      `Processing item ${index + 1}/${registryData.items.length}: type=${item?.type || "unknown"}`
     );
 
-    // Safety check for item structure
     if (!item || typeof item !== "object" || !item.type) {
-      console.warn("⚠️ Skipping invalid registry item:", item);
+      console.warn("Skipping invalid registry item:", item);
       continue;
     }
 
     switch (item.type) {
       case "collection":
-        console.log("   📚 Processing collection...");
+        console.debug("   Processing collection...");
 
         if (!item.collection || typeof item.collection !== "object") {
-          console.warn("   ❌ Skipping collection with invalid data:", item);
+          console.warn("   Skipping collection with invalid data:", item);
           continue;
         }
 
@@ -165,20 +151,17 @@ function transformRegistryToDeploymentSchema(
           },
         };
 
-        console.log(
-          `   ✅ Collection processed: ${collectionItem.collectionProps.name}`
-        );
-        console.log(
-          `   📊 Models in collection: ${collectionItem.collectionProps.models.length}`
+        console.debug(
+          `   Collection processed: ${collectionItem.collectionProps.name} (${collectionItem.collectionProps.models.length} models)`
         );
         deploymentItems.push(collectionItem);
         break;
 
       case "customApp":
-        console.log("   🔧 Processing custom app...");
+        console.debug("   Processing custom app...");
 
         if (!item.customApp || typeof item.customApp !== "object") {
-          console.warn("   ❌ Skipping customApp with invalid data:", item);
+          console.warn("   Skipping customApp with invalid data:", item);
           continue;
         }
 
@@ -224,23 +207,17 @@ function transformRegistryToDeploymentSchema(
           },
         };
 
-        console.log(
-          `   ✅ Custom app processed: ${customAppItem.customAppProps.name}`
-        );
-        console.log(
-          `   🔑 Auth type: ${customAppItem.customAppProps.authType}`
-        );
-        console.log(
-          `   🔐 Has OAuth: ${customAppItem.customAppProps.hasOAuth || false}`
+        console.debug(
+          `   Custom app processed: ${customAppItem.customAppProps.name} (auth=${customAppItem.customAppProps.authType})`
         );
         deploymentItems.push(customAppItem);
         break;
 
       case "integration":
-        console.log("   🔗 Processing integration...");
+        console.debug("   Processing integration...");
 
         if (!item.integration || typeof item.integration !== "object") {
-          console.warn("   ❌ Skipping integration with invalid data:", item);
+          console.warn("   Skipping integration with invalid data:", item);
           continue;
         }
 
@@ -249,7 +226,7 @@ function transformRegistryToDeploymentSchema(
 
         // Collection is required
         if (!integration.collection) {
-          console.warn("   ❌ Skipping integration without collection:", item);
+          console.warn("   Skipping integration without collection:", item);
           continue;
         }
 
@@ -310,39 +287,17 @@ function transformRegistryToDeploymentSchema(
           integrationProps,
         };
 
-        console.log(
-          `   ✅ Integration processed: ${integrationItem.integrationProps.name}`
-        );
-        console.log(
-          `   🔧 App: ${
-            integrationProps.app || integrationProps.customApp || "none"
-          }`
-        );
-        console.log(`   📱 App type: ${integration.app?.type || "unknown"}`);
-        console.log(`   📚 Collection: ${integrationProps.collection}`);
-        console.log(
-          `   ⚡ Actions: ${integrationProps.actions?.join(", ") || "none"}`
-        );
-        console.log(
-          `   🪝 Webhooks: ${integrationProps.webhooks?.join(", ") || "none"}`
-        );
-        console.log(
-          `   ⏱️ Sync Schedules: ${
-            integrationProps.syncSchedules
-              ? integrationProps.syncSchedules
-                  .map((s) => `${s.type}${s.every ? ` every ${s.every}` : ""}`)
-                  .join(", ")
-              : "none"
-          }`
+        console.debug(
+          `   Integration processed: ${integrationItem.integrationProps.name}`
         );
         deploymentItems.push(integrationItem);
         break;
 
       case "action":
-        console.log("   ⚡ Processing action...");
+        console.debug("   Processing action...");
 
         if (!item.action || typeof item.action !== "object") {
-          console.warn("   ❌ Skipping action with invalid data:", item);
+          console.warn("   Skipping action with invalid data:", item);
           continue;
         }
 
@@ -393,15 +348,15 @@ function transformRegistryToDeploymentSchema(
           },
         };
 
-        console.log(`   ✅ Action processed: ${actionItem.actionProps.name}`);
+        console.debug(`   Action processed: ${actionItem.actionProps.name}`);
         deploymentItems.push(actionItem);
         break;
 
       case "webhook":
-        console.log("   🪝 Processing webhook...");
+        console.debug("   Processing webhook...");
 
         if (!item.webhook || typeof item.webhook !== "object") {
-          console.warn("   ❌ Skipping webhook with invalid data:", item);
+          console.warn("   Skipping webhook with invalid data:", item);
           continue;
         }
 
@@ -450,46 +405,24 @@ function transformRegistryToDeploymentSchema(
           },
         };
 
-        console.log(`   ✅ Webhook processed: ${webhookItem.webhookProps.name}`);
+        console.debug(`   Webhook processed: ${webhookItem.webhookProps.name}`);
         deploymentItems.push(webhookItem);
         break;
 
       case "model":
-        console.log(
-          "   📄 Skipping standalone model (not deployable in this schema)"
+        console.debug(
+          `   Skipping standalone model: ${item.model?.name || "unnamed"}`
         );
-        console.log(`   Model name: ${item.model?.name || "unnamed"}`);
         break;
 
       default:
-        console.warn(`   ❓ Unknown registry item type: ${item.type}`);
+        console.warn(`   Unknown registry item type: ${item.type}`);
     }
   }
 
-  console.log(
-    `\n🎯 Transformation complete: ${deploymentItems.length} deployable items created`
+  console.debug(
+    `Transformation complete: ${deploymentItems.length} deployable items`
   );
-  console.log("📦 Deployable items summary:");
-  const collections = deploymentItems.filter(
-    (item) => item.type === "collection"
-  ).length;
-  const customApps = deploymentItems.filter(
-    (item) => item.type === "customApp"
-  ).length;
-  const integrations = deploymentItems.filter(
-    (item) => item.type === "integration"
-  ).length;
-  const actions = deploymentItems.filter(
-    (item) => item.type === "action"
-  ).length;
-  const webhooks = deploymentItems.filter(
-    (item) => item.type === "webhook"
-  ).length;
-  console.log(`   - Collections: ${collections}`);
-  console.log(`   - Custom Apps: ${customApps}`);
-  console.log(`   - Integrations: ${integrations}`);
-  console.log(`   - Actions: ${actions}`);
-  console.log(`   - Webhooks: ${webhooks}`);
 
   return deploymentItems;
 }
@@ -498,49 +431,18 @@ async function postDeploymentData(
   deploymentData: DeploymentItem[],
   payload: DeployPayload
 ): Promise<any> {
-  console.log("\n🚀 Starting deployment API call...");
-  console.log("📋 Deployment payload configuration:");
-  console.log(`   Environment: ${payload.environment || "(using default)"}`);
-  console.log(`   Dry run: ${payload.dryRun || false}`);
-  console.log(`   Base URL: ${payload.baseUrl || "(from env/default)"}`);
-
   const baseUrl =
     payload.baseUrl || process.env.BASE_URL || "https://app.unscrambled.ai";
-  // Allow payload override, otherwise use standard getEnvName logic
   const envName = payload.environment || process.env.ENV_NAME || "dev";
-
-  console.log("\n🔧 Configuration resolved:");
-  console.log(`   Final base URL: ${baseUrl}`);
-  console.log(`   Final environment: ${envName}`);
-  console.log(
-    `   BASE_URL source: ${
-      payload.baseUrl
-        ? "payload"
-        : process.env.BASE_URL
-        ? "environment"
-        : "default (https://app.unscrambled.ai)"
-    }`
-  );
-
-  // BASE_URL should always be available now with the default fallback
-
   const url = `${baseUrl}/api/v1/projects/default/envs/${envName}/deploy`;
-  console.log(`🎯 Target deployment URL: ${url}`);
+
+  console.debug(`Deploy target: ${url} (env=${envName})`);
 
   try {
-    console.log("📝 Serializing deployment data...");
     const deploymentDataJson = JSON.stringify(deploymentData, null, 2);
-    console.log("✅ Deployment data serialized successfully");
-    console.log(
-      `📏 Serialized data size: ${deploymentDataJson.length} characters`
-    );
-    console.log(`Deployment data:`, deploymentDataJson);
+    console.debug(`Deployment data (${deploymentDataJson.length} chars):`, deploymentDataJson);
   } catch (jsonError) {
-    console.error("❌ Error serializing deployment data:", jsonError);
-    console.error(
-      "🔍 Raw deployment data that failed serialization:",
-      deploymentData
-    );
+    console.error("Error serializing deployment data:", jsonError);
     throw new Error(
       `Failed to serialize deployment data: ${
         jsonError instanceof Error ? jsonError.message : "Unknown error"
@@ -549,41 +451,19 @@ async function postDeploymentData(
   }
 
   if (payload.dryRun) {
-    console.log("🏃 DRY RUN mode - skipping actual HTTP request");
-    console.log(`📍 Would POST to: ${url}`);
+    console.debug("Dry run mode - skipping actual HTTP request");
     return { dryRun: true, url, data: deploymentData };
   }
 
   try {
-    console.log("🌐 Making REAL HTTP POST request...");
-    console.log(`📊 Sending ${deploymentData.length} items to deployment API`);
-    console.log(`📍 Request URL: ${url}`);
-    console.log(`📋 Request Method: POST`);
-
-    // Get API key for authentication
     const apiKey =
       payload.apiKey || process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
     if (!apiKey) {
-      console.error("❌ No API key provided");
-      console.error("💡 API key can be provided via:");
-      console.error("   - payload.apiKey parameter");
-      console.error("   - UNSCRAMBLED_API_KEY environment variable");
-      console.error("   - API_KEY environment variable");
       throw new Error(
         "Missing API key. Provide via payload.apiKey or UNSCRAMBLED_API_KEY/API_KEY environment variable."
       );
     }
 
-    console.log(
-      "🔐 API key source:",
-      payload.apiKey
-        ? "payload"
-        : process.env.UNSCRAMBLED_API_KEY
-        ? "UNSCRAMBLED_API_KEY env"
-        : "API_KEY env"
-    );
-
-    // Prepare request headers
     const requestHeaders = {
       "Content-Type": "application/json",
       "User-Agent": "@unscrambled/sdk",
@@ -595,26 +475,11 @@ async function postDeploymentData(
         .toString(36)
         .substr(2, 9)}`,
     };
-    console.log("📨 Request Headers:");
-    Object.entries(requestHeaders).forEach(([key, value]) => {
-      // Redact the Authorization header for security
-      const displayValue =
-        key === "Authorization" ? "Bearer [REDACTED]" : value;
-      console.log(`   ${key}: ${displayValue}`);
-    });
 
-    // Prepare request body
     const requestBody = JSON.stringify(deploymentData);
-    const requestBodyPreview = requestBody.substring(0, 200);
-    console.log(
-      `📤 Request Body Preview (first 200 chars): ${requestBodyPreview}${
-        requestBody.length > 200 ? "..." : ""
-      }`
-    );
-    console.log(`📏 Full request body size: ${requestBody.length} bytes`);
+    console.debug(`POST ${url} (${requestBody.length} bytes, ${deploymentData.length} items)`);
 
     const startTime = Date.now();
-    console.log(`⏰ Starting HTTP request at: ${new Date().toISOString()}`);
 
     // Make the ACTUAL HTTP request using fetch with retries for transient errors
     const maxAttempts = 5; // total attempts including first
@@ -664,66 +529,24 @@ async function postDeploymentData(
       }
     }
 
-    const endTime = Date.now();
-    const duration = endTime - startTime;
+    const duration = Date.now() - startTime;
 
-    console.log(`⏰ HTTP request completed in: ${duration}ms`);
-    console.log(
-      `📈 Response Status: ${response.status} ${response.statusText}`
-    );
-
-    // Log actual response headers
-    console.log("📥 Response Headers:");
-    response.headers.forEach((value, key) => {
-      console.log(`   ${key}: ${value}`);
-    });
-
-    // Get response body
     const responseText = await response.text();
-    console.log(`📏 Response body size: ${responseText.length} bytes`);
-
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log("📦 Response Body (parsed JSON):");
-      console.log(JSON.stringify(responseData, null, 2));
-    } catch (parseError) {
-      console.log("📦 Response Body (raw text - not valid JSON):");
-      console.log(responseText);
-      console.log("⚠️ Failed to parse response as JSON:", parseError);
+    } catch {
+      console.debug("Response body (raw):", responseText);
     }
 
-    // Check if request was successful
+    console.debug(`Deploy API responded ${response.status} in ${duration}ms`);
+
     if (!response.ok) {
-      console.error(
-        `❌ HTTP request failed with status: ${response.status} ${response.statusText}`
-      );
       throw new Error(
         `HTTP ${response.status}: ${response.statusText}${
           responseData?.error ? ` - ${responseData.error}` : ""
         }`
       );
-    }
-
-    console.log("✅ HTTP POST request completed successfully");
-
-    // Log deployment summary if we have structured data
-    if (responseData && typeof responseData === "object") {
-      console.log("🎯 Deployment Summary:");
-      if (responseData.deploymentId)
-        console.log(`   ✅ Deployment ID: ${responseData.deploymentId}`);
-      if (responseData.itemsDeployed)
-        console.log(`   📊 Items Deployed: ${responseData.itemsDeployed}`);
-      if (responseData.environment)
-        console.log(`   🌍 Environment: ${responseData.environment}`);
-      if (responseData.processing?.totalMs)
-        console.log(
-          `   ⏱️ Processing Time: ${responseData.processing.totalMs}ms`
-        );
-      if (responseData.summary?.totalBytes)
-        console.log(
-          `   📏 Payload Size: ${responseData.summary.totalBytes} bytes`
-        );
     }
 
     return (
@@ -735,14 +558,7 @@ async function postDeploymentData(
       }
     );
   } catch (error) {
-    console.error("❌ HTTP POST request failed:", error);
-    if (error instanceof Error) {
-      console.error(`💥 Error name: ${error.name}`);
-      console.error(`📝 Error message: ${error.message}`);
-      console.error(`🔍 Error stack: ${error.stack}`);
-    } else {
-      console.error(`🤷 Non-Error object thrown: ${typeof error}`, error);
-    }
+    console.error("Deploy API request failed:", error);
     throw error;
   }
 }
@@ -753,42 +569,24 @@ export const handleDeploy: DeployHandler = async (
   // Use empty object as default if no payload provided
   const deployPayload: DeployPayload = payload || {};
 
-  console.log("\n🚀 Starting deployment process...");
-  console.log("Deploy operation called", { payload: deployPayload });
+  console.debug("Deploy operation called", { payload: deployPayload });
 
   try {
-    console.log("\n📋 Step 1: Exporting registry...");
     const exported = exportRegistry();
+    console.debug(`Registry: ${exported.items.length} items`);
 
-    console.log("Exported registry:", exported);
-    console.log(`📊 Registry stats: ${exported.items.length} total items`);
-
-    console.log("\n🔄 Step 2: Transforming data...");
     const deploymentData = transformRegistryToDeploymentSchema(exported);
 
-    console.log("Deployment data:", deploymentData);
-
     if (deploymentData.length === 0) {
-      console.log("ℹ️ No deployable items found in registry");
-      console.log(
-        "💡 Note: Collections, custom apps, webhooks, actions, and integrations are deployable"
-      );
-      console.log(
-        "💡 Standalone models must be part of a collection to be deployed"
-      );
-      console.log(
-        "📤 Proceeding with empty deployment to clear/deactivate previous deployments"
-      );
+      console.debug("No deployable items found; sending empty deployment");
     }
 
-    const deploymentMessage = `\n🎯 Step 3: Deploying ${deploymentData.length} items...`;
-    console.log(deploymentMessage);
     const deploymentResult = await postDeploymentData(
       deploymentData,
       deployPayload
     );
 
-    console.log("✅ Deployment completed successfully!");
+    console.info(`Deployed ${deploymentData.length} items successfully`);
 
     return {
       success: true,
@@ -820,37 +618,8 @@ export const handleDeploy: DeployHandler = async (
       logs: [],
     };
   } catch (error) {
-    console.error("\n💥 Deploy operation failed!");
-    console.error("❌ Error details:", error);
-
-    // Enhanced error logging
-    if (error instanceof Error) {
-      console.error(`🏷️ Error type: ${error.constructor.name}`);
-      console.error(`📝 Error name: ${error.name}`);
-      console.error(`💬 Error message: ${error.message}`);
-      console.error(`🔍 Error stack:`);
-      console.error(error.stack);
-    } else {
-      console.error(`🤷 Non-Error object thrown:`);
-      console.error(`   Type: ${typeof error}`);
-      console.error(`   Value:`, error);
-      console.error(`   String representation: ${String(error)}`);
-    }
-
-    // Log current state for debugging
-    console.error("\n🔍 Debug information:");
-    console.error(
-      `📋 Deployment payload: ${JSON.stringify(deployPayload, null, 2)}`
-    );
-    console.error(`🌍 Environment variables:`);
-    console.error(
-      `   BASE_URL: ${
-        process.env.BASE_URL || "(using default: https://app.unscrambled.ai)"
-      }`
-    );
-    console.error(
-      `   ENV_NAME: ${process.env.ENV_NAME || "(using default: default)"}`
-    );
+    console.error("Deploy failed:", error instanceof Error ? error.message : error);
+    console.debug("Deploy error details:", error);
 
     const errorMessage =
       error instanceof Error
