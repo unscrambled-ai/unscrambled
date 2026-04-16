@@ -92,6 +92,29 @@ interface DeploymentItem {
   webhookProps?: WebhookProps;
 }
 
+const REQUEST_ID_HEADER_NAMES = [
+  "x-request-id",
+  "x-amzn-requestid",
+  "x-amz-request-id",
+  "x-correlation-id",
+  "x-vercel-id",
+] as const;
+
+function getFetchResponseRequestId(response: Response): string | undefined {
+  for (const headerName of REQUEST_ID_HEADER_NAMES) {
+    const headerValue = response.headers.get(headerName);
+    if (headerValue?.trim()) {
+      return headerValue;
+    }
+  }
+
+  return undefined;
+}
+
+function formatRequestIdSuffix(requestId?: string): string {
+  return requestId ? ` (requestId: ${requestId})` : "";
+}
+
 function transformRegistryToDeploymentSchema(
   registryData: any
 ): DeploymentItem[] {
@@ -455,112 +478,117 @@ async function postDeploymentData(
     return { dryRun: true, url, data: deploymentData };
   }
 
-  try {
-    const apiKey =
-      payload.apiKey || process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "Missing API key. Provide via payload.apiKey or UNSCRAMBLED_API_KEY/API_KEY environment variable."
-      );
-    }
+  const apiKey =
+    payload.apiKey || process.env.UNSCRAMBLED_API_KEY || process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Missing API key. Provide via payload.apiKey or UNSCRAMBLED_API_KEY/API_KEY environment variable."
+    );
+  }
 
-    const requestHeaders = {
-      "Content-Type": "application/json",
-      "User-Agent": "@unscrambled/sdk",
-      Accept: "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "X-SDK-Version": "0.1.0",
-      "X-Environment": envName,
-      "X-Request-ID": `req_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`,
-    };
+  const requestHeaders = {
+    "Content-Type": "application/json",
+    "User-Agent": "@unscrambled/sdk",
+    Accept: "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    "X-SDK-Version": "0.1.0",
+    "X-Environment": envName,
+    "X-Request-ID": `req_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`,
+  };
 
-    const requestBody = JSON.stringify(deploymentData);
-    console.debug(`POST ${url} (${requestBody.length} bytes, ${deploymentData.length} items)`);
+  const requestBody = JSON.stringify(deploymentData);
+  console.debug(`POST ${url} (${requestBody.length} bytes, ${deploymentData.length} items)`);
 
-    const startTime = Date.now();
+  const startTime = Date.now();
 
-    // Make the ACTUAL HTTP request using fetch with retries for transient errors
-    const maxAttempts = 5; // total attempts including first
-    let attempt = 1;
-    let response: Response | null = null;
-    while (true) {
-      try {
-        response = await fetch(url, {
-          method: "POST",
-          headers: requestHeaders,
-          body: requestBody,
-        });
+  // Make the ACTUAL HTTP request using fetch with retries for transient errors
+  const maxAttempts = 5; // total attempts including first
+  let attempt = 1;
+  let response: Response | null = null;
+  while (true) {
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: requestHeaders,
+        body: requestBody,
+      });
 
-        if (!response.ok) {
-          const retriable =
-            response.status === 429 ||
-            (response.status >= 500 && response.status < 600);
-          if (retriable && attempt < maxAttempts) {
-            const waitMs =
-              Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 5000);
-            console.warn(
-              `Transient deploy API error ${response.status}. Retrying in ${(
-                waitMs / 1000
-              ).toFixed(2)}s (attempt ${attempt}/${maxAttempts})`
-            );
-            await new Promise((r) => setTimeout(r, waitMs));
-            attempt += 1;
-            continue;
-          }
-        }
-        break;
-      } catch (err: any) {
-        const isNetworkError = err && !("status" in (err as any));
-        if (isNetworkError && attempt < maxAttempts) {
+      if (!response.ok) {
+        const requestId = getFetchResponseRequestId(response);
+        const retriable =
+          response.status === 429 ||
+          (response.status >= 500 && response.status < 600);
+        if (retriable && attempt < maxAttempts) {
           const waitMs =
             Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 5000);
           console.warn(
-            `Network error calling deploy API. Retrying in ${(
-              waitMs / 1000
-            ).toFixed(2)}s (attempt ${attempt}/${maxAttempts})`
+            `Transient deploy API error ${response.status}${formatRequestIdSuffix(
+              requestId
+            )}. Retrying in ${(waitMs / 1000).toFixed(2)}s (attempt ${attempt}/${maxAttempts})`
           );
           await new Promise((r) => setTimeout(r, waitMs));
           attempt += 1;
           continue;
         }
-        throw err;
       }
-    }
-
-    const duration = Date.now() - startTime;
-
-    const responseText = await response.text();
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      console.debug("Response body (raw):", responseText);
-    }
-
-    console.debug(`Deploy API responded ${response.status} in ${duration}ms`);
-
-    if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}: ${response.statusText}${
-          responseData?.error ? ` - ${responseData.error}` : ""
-        }`
-      );
-    }
-
-    return (
-      responseData || {
-        status: "success",
-        message: "Deployment request sent successfully",
-        httpStatus: response.status,
-        responseSize: responseText.length,
+      break;
+    } catch (err: any) {
+      const isNetworkError = err && !("status" in (err as any));
+      if (isNetworkError && attempt < maxAttempts) {
+        const waitMs =
+          Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 5000);
+        console.warn(
+          `Network error calling deploy API. Retrying in ${(
+            waitMs / 1000
+          ).toFixed(2)}s (attempt ${attempt}/${maxAttempts})`
+        );
+        await new Promise((r) => setTimeout(r, waitMs));
+        attempt += 1;
+        continue;
       }
-    );
-  } catch (error) {
-    console.error("Deploy API request failed:", error);
-    throw error;
+      throw err;
+    }
   }
+
+  const duration = Date.now() - startTime;
+
+  const responseText = await response.text();
+  let responseData;
+  try {
+    responseData = JSON.parse(responseText);
+  } catch {
+    console.debug("Response body (raw):", responseText);
+  }
+
+  const requestId = getFetchResponseRequestId(response);
+
+  console.debug(
+    `Deploy API responded ${response.status} in ${duration}ms${formatRequestIdSuffix(
+      requestId
+    )}`
+  );
+
+  if (!response.ok) {
+    const responseErrorMessage =
+      responseData?.message || responseData?.error || undefined;
+
+    throw new Error(
+      `HTTP ${response.status}: ${response.statusText}${
+        responseErrorMessage ? ` - ${responseErrorMessage}` : ""
+      }${formatRequestIdSuffix(requestId)}`
+    );
+  }
+
+  return (
+    responseData || {
+      status: "success",
+      message: "Deployment request sent successfully",
+      httpStatus: response.status,
+      responseSize: responseText.length,
+    }
+  );
 }
 
 export const handleDeploy: DeployHandler = async (

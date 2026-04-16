@@ -1,7 +1,7 @@
 import { program } from "commander";
 import { execa } from "execa";
 
-const TEMPLATE_URL = "https://github.com/unscrambled-ai/unscrambled-template";
+const TEMPLATE_URL = "https://github.com/unscrambled-ai/starter";
 
 export default async function cloneFromTemplate(
   projectName: string,

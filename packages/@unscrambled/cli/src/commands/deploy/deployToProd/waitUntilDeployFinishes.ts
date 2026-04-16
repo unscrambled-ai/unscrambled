@@ -82,9 +82,6 @@ export default async function waitUntilDeployFinishes(
       }
       isFinished = true;
     } else if (status === "FAILED") {
-      if (!options.quiet) {
-        terminal.red("Deploy failed 💥\n");
-      }
       program.error("Deploy failed", { exitCode: 1 });
     } else {
       // Wait before next poll

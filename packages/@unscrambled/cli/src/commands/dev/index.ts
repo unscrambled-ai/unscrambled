@@ -25,6 +25,7 @@ import { handleReceiveCustomAppWebhook } from "./handleReceiveCustomAppWebhook";
 import { trigger as triggerCommand } from "../trigger";
 import getQueuedRuns from "../../shared/getQueuedRuns";
 import execDeployAndSubscribe from "../../shared/execDeployAndSubscribe";
+import { execBuild } from "../../shared/execBuild";
 import { requireAuth } from "../../shared/requireAuth";
 
 export const dev = new Command("dev");
@@ -88,9 +89,7 @@ dev
 
             if (otherServerCount > 0) {
               terminal.red("\n❌ Another dev server is already running!\n\n");
-              terminal(
-                "Only one dev server can run at a time per environment.\n"
-              );
+              terminal("Only one dev server can run at a time per project.\n");
               terminal("Please stop the other dev server and try again.\n\n");
               reject(new Error("Another dev server is already running"));
             } else {
@@ -134,6 +133,7 @@ dev
 
     console.debug("Deploying latest build to dev...");
     try {
+      await execBuild();
       await execDeployAndSubscribe(devEnvironment);
     } catch (error) {
       terminal.red("Initial dev deploy failed.\n");

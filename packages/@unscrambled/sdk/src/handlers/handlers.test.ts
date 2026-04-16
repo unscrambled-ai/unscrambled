@@ -257,5 +257,72 @@ describe("Handlers", () => {
       expect(deployNoPayload.data.environment).toBe("default");
       expect(deployNoPayload.logs).toEqual([]);
     });
+
+    it("should include the request id in transient deploy retry logs", async () => {
+      vi.useFakeTimers();
+      const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      defineOAuth2CustomApp("retry-app").deploy();
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: new Map([["x-request-id", "retry-request-123"]]),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              message: "Unexpected error",
+            })
+          ),
+      });
+
+      try {
+        const deployPromise = handleDeploy({
+          baseUrl: "https://api.test.com",
+        });
+
+        await vi.runAllTimersAsync();
+        const result = await deployPromise;
+
+        expect(result.success).toBe(true);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("requestId: retry-request-123")
+        );
+      } finally {
+        randomSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    it("should log deploy failures once", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      defineOAuth2CustomApp("failing-deploy").deploy();
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        headers: new Map([["x-request-id", "bad-request-123"]]),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              message: "Invalid payload",
+            })
+          ),
+      });
+
+      const result = await handleDeploy({
+        baseUrl: "https://api.test.com",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("requestId: bad-request-123");
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        "Deploy failed:",
+        expect.stringContaining("requestId: bad-request-123")
+      );
+    });
   });
 });
