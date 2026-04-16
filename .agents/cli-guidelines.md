@@ -289,6 +289,17 @@ Prefer:
 
 Avoid placeholder-heavy examples that require too much interpretation.
 
+### 19. Keep Changesets package-specific
+
+This repo uses Changesets for versioning and changelog generation. A single multi-package changeset body is copied into every affected package changelog, so vague or mixed-package prose creates confusing release notes.
+
+When creating or editing a changeset:
+
+- prefer separate changeset files when CLI and SDK notes are meaningfully different
+- if one changeset must touch multiple packages, write clearly separated package-specific bullets and avoid describing package A in package B's paragraph
+- review the generated `CHANGELOG.md` diffs before landing `changeset version`
+- if a generated changelog entry reads strangely in a package when viewed alone, rewrite the changeset or split it before merging
+
 ## Guidance For This Repo
 
 The current CLI already has a number of command groups such as `syncs`, `collections`, `objects`, `runs`, `actions`, `auth`, and `envs`. New commands should extend that structure rather than inventing one-off patterns.
