@@ -499,7 +499,8 @@ export class IntegrationBuilder {
       app: this.app,
       collection: this.collection,
       actions: this.actions,
-      webhooks: Object.keys(this.webhooks).length > 0 ? this.webhooks : undefined,
+      webhooks:
+        Object.keys(this.webhooks).length > 0 ? this.webhooks : undefined,
       syncSchedules: this.syncSchedules,
       readOnly: this.readOnly,
       writeOnly: this.writeOnly,

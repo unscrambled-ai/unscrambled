@@ -137,7 +137,9 @@ function transformRegistryToDeploymentSchema(
 
   for (const [index, item] of registryData.items.entries()) {
     console.debug(
-      `Processing item ${index + 1}/${registryData.items.length}: type=${item?.type || "unknown"}`
+      `Processing item ${index + 1}/${registryData.items.length}: type=${
+        item?.type || "unknown"
+      }`
     );
 
     if (!item || typeof item !== "object" || !item.type) {
@@ -463,7 +465,10 @@ async function postDeploymentData(
 
   try {
     const deploymentDataJson = JSON.stringify(deploymentData, null, 2);
-    console.debug(`Deployment data (${deploymentDataJson.length} chars):`, deploymentDataJson);
+    console.debug(
+      `Deployment data (${deploymentDataJson.length} chars):`,
+      deploymentDataJson
+    );
   } catch (jsonError) {
     console.error("Error serializing deployment data:", jsonError);
     throw new Error(
@@ -499,7 +504,9 @@ async function postDeploymentData(
   };
 
   const requestBody = JSON.stringify(deploymentData);
-  console.debug(`POST ${url} (${requestBody.length} bytes, ${deploymentData.length} items)`);
+  console.debug(
+    `POST ${url} (${requestBody.length} bytes, ${deploymentData.length} items)`
+  );
 
   const startTime = Date.now();
 
@@ -524,9 +531,11 @@ async function postDeploymentData(
           const waitMs =
             Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 5000);
           console.warn(
-            `Transient deploy API error ${response.status}${formatRequestIdSuffix(
-              requestId
-            )}. Retrying in ${(waitMs / 1000).toFixed(2)}s (attempt ${attempt}/${maxAttempts})`
+            `Transient deploy API error ${
+              response.status
+            }${formatRequestIdSuffix(requestId)}. Retrying in ${(
+              waitMs / 1000
+            ).toFixed(2)}s (attempt ${attempt}/${maxAttempts})`
           );
           await new Promise((r) => setTimeout(r, waitMs));
           attempt += 1;
@@ -565,9 +574,9 @@ async function postDeploymentData(
   const requestId = getFetchResponseRequestId(response);
 
   console.debug(
-    `Deploy API responded ${response.status} in ${duration}ms${formatRequestIdSuffix(
-      requestId
-    )}`
+    `Deploy API responded ${
+      response.status
+    } in ${duration}ms${formatRequestIdSuffix(requestId)}`
   );
 
   if (!response.ok) {
@@ -646,7 +655,10 @@ export const handleDeploy: DeployHandler = async (
       logs: [],
     };
   } catch (error) {
-    console.error("Deploy failed:", error instanceof Error ? error.message : error);
+    console.error(
+      "Deploy failed:",
+      error instanceof Error ? error.message : error
+    );
     console.debug("Deploy error details:", error);
 
     const errorMessage =

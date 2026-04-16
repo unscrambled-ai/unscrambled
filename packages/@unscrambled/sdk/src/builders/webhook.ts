@@ -103,7 +103,9 @@ export class WebhookBuilder<
   withCustomApps(...customApps: Array<CustomApp | string>): this;
   withCustomApps(customApps: Array<CustomApp | string>): this;
   withCustomApps(
-    ...customAppsOrArray: Array<CustomApp | string> | [Array<CustomApp | string>]
+    ...customAppsOrArray:
+      | Array<CustomApp | string>
+      | [Array<CustomApp | string>]
   ): this {
     const customApps = Array.isArray(customAppsOrArray[0])
       ? (customAppsOrArray[0] as Array<CustomApp | string>)
@@ -125,7 +127,9 @@ export class WebhookBuilder<
   addCustomApps(...customApps: Array<CustomApp | string>): this;
   addCustomApps(customApps: Array<CustomApp | string>): this;
   addCustomApps(
-    ...customAppsOrArray: Array<CustomApp | string> | [Array<CustomApp | string>]
+    ...customAppsOrArray:
+      | Array<CustomApp | string>
+      | [Array<CustomApp | string>]
   ): this {
     const customApps = Array.isArray(customAppsOrArray[0])
       ? (customAppsOrArray[0] as Array<CustomApp | string>)
@@ -358,7 +362,9 @@ export class WebhookBuilder<
 
 export interface DefineWebhookFn {
   (name: string): WebhookBuilder<[], []>;
-  from: (source: Webhook | WebhookBuilder<any, any>) => WebhookBuilder<any, any>;
+  from: (
+    source: Webhook | WebhookBuilder<any, any>
+  ) => WebhookBuilder<any, any>;
 }
 
 export const defineWebhook: DefineWebhookFn = ((name: string) =>

@@ -178,7 +178,9 @@ dev
       console.debug("Checking for queued runs...");
       const queued = await getQueuedRuns(devEnvironment);
       if (queued.length > 0) {
-        console.info(`Found ${queued.length} queued run(s). Adding to queue...`);
+        console.info(
+          `Found ${queued.length} queued run(s). Adding to queue...`
+        );
         for (const item of queued) {
           pushOperation({
             operation: "run",

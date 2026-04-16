@@ -52,7 +52,9 @@ describe("waitUntilDeployFinishes", () => {
       throw exitError;
     });
 
-    await expect(waitUntilDeployFinishes("deploy-123")).rejects.toThrow(exitError);
+    await expect(waitUntilDeployFinishes("deploy-123")).rejects.toThrow(
+      exitError
+    );
 
     expect(terminal.red).not.toHaveBeenCalled();
     expect(program.error).toHaveBeenCalledWith("Deploy failed", {

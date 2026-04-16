@@ -113,7 +113,11 @@ export const handleRun: RunHandler = async (
       };
     }
 
-    console.debug(`Action: ${actionName}, Run ID: ${runId}, Data keys: ${data ? Object.keys(data).join(", ") : "none"}`);
+    console.debug(
+      `Action: ${actionName}, Run ID: ${runId}, Data keys: ${
+        data ? Object.keys(data).join(", ") : "none"
+      }`
+    );
 
     // Check if global action index exists and has the action
     if (typeof globalThis === "undefined" || !globalThis.actionIndex) {
@@ -228,9 +232,7 @@ export const handleRun: RunHandler = async (
             // Add syncId to context if present
             if (fetchedSyncId) {
               ctx.syncId = fetchedSyncId;
-              console.debug(
-                `Set syncId in context: ${fetchedSyncId}`
-              );
+              console.debug(`Set syncId in context: ${fetchedSyncId}`);
             }
             if (Object.keys(ctx).length > 0) {
               getLogCapture()?.setContext(ctx);

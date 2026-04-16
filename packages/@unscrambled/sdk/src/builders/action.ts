@@ -201,7 +201,9 @@ export class ActionBuilder<
   withCustomApps(...customApps: Array<CustomApp | string>): this;
   withCustomApps(customApps: Array<CustomApp | string>): this;
   withCustomApps(
-    ...customAppsOrArray: Array<CustomApp | string> | [Array<CustomApp | string>]
+    ...customAppsOrArray:
+      | Array<CustomApp | string>
+      | [Array<CustomApp | string>]
   ): this {
     const customApps = Array.isArray(customAppsOrArray[0])
       ? (customAppsOrArray[0] as Array<CustomApp | string>)
@@ -223,7 +225,9 @@ export class ActionBuilder<
   addCustomApps(...customApps: Array<CustomApp | string>): this;
   addCustomApps(customApps: Array<CustomApp | string>): this;
   addCustomApps(
-    ...customAppsOrArray: Array<CustomApp | string> | [Array<CustomApp | string>]
+    ...customAppsOrArray:
+      | Array<CustomApp | string>
+      | [Array<CustomApp | string>]
   ): this {
     const customApps = Array.isArray(customAppsOrArray[0])
       ? (customAppsOrArray[0] as Array<CustomApp | string>)
