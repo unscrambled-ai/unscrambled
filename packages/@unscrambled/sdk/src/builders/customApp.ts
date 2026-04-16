@@ -156,21 +156,21 @@ export class CustomAppBuilder {
 }
 
 /**
- * Factory function for creating an OAuth2 custom app builder
+ * @deprecated Use `defineCustomApp(name, "OAUTH2")` instead
  */
 export function defineOAuth2CustomApp(name: string): CustomAppBuilder {
   return new CustomAppBuilder(name, "OAUTH2");
 }
 
 /**
- * Factory function for creating an API Key custom app builder
+ * @deprecated Use `defineCustomApp(name, "APIKEY")` instead
  */
 export function defineApiKeyCustomApp(name: string): CustomAppBuilder {
   return new CustomAppBuilder(name, "APIKEY");
 }
 
 /**
- * Factory function for creating a Basic Auth custom app builder
+ * @deprecated Use `defineCustomApp(name, "BASIC")` instead
  */
 export function defineBasicCustomApp(name: string): CustomAppBuilder {
   return new CustomAppBuilder(name, "BASIC");

@@ -63,9 +63,7 @@ describe("ActionBuilder", () => {
     });
 
     it("should attach built-in apps directly to actions", () => {
-      const action = defineAction("sync-contacts")
-        .withApp("hubspot")
-        .deploy();
+      const action = defineAction("sync-contacts").withApp("hubspot").deploy();
 
       expect(action.apps).toEqual(["hubspot"]);
       expect(action.customApps).toBeUndefined();
@@ -306,11 +304,10 @@ describe("ActionBuilder", () => {
 
   describe("Copying actions", () => {
     it("preserves direct app auth metadata when cloning from an action", () => {
-      const action = defineAction("process-lead")
-        .withApp("hubspot")
-        .deploy();
+      const action = defineAction("process-lead").withApp("hubspot").deploy();
 
-      const cloned = defineAction.from(action)
+      const cloned = defineAction
+        .from(action)
         .withName("process-lead-copy")
         .deploy();
 

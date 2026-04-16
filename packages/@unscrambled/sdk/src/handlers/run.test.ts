@@ -2,8 +2,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { handleRun } from "./run";
 import { defineAction, clearRegistry } from "../";
 
-// Mock global console to capture logs
-const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+const { getRunFuncPropsMock, finishRunMock } = vi.hoisted(() => ({
+  getRunFuncPropsMock: vi.fn(),
+  finishRunMock: vi.fn(),
+}));
+
+vi.mock("../platform/run.js", () => ({
+  getRunFuncProps: getRunFuncPropsMock,
+  finishRun: finishRunMock,
+}));
+
+// Mock console methods used by the handler so we can assert log routing.
+const consoleDebugSpy = vi
+  .spyOn(console, "debug")
+  .mockImplementation(() => {});
 const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
 describe("handleRun", () => {
@@ -13,7 +25,11 @@ describe("handleRun", () => {
     if (typeof globalThis !== "undefined") {
       globalThis.actionIndex = {};
     }
-    consoleSpy.mockClear();
+    getRunFuncPropsMock.mockReset();
+    getRunFuncPropsMock.mockResolvedValue({});
+    finishRunMock.mockReset();
+    finishRunMock.mockResolvedValue(undefined);
+    consoleDebugSpy.mockClear();
     consoleErrorSpy.mockClear();
   });
 
@@ -295,14 +311,14 @@ describe("handleRun", () => {
       });
 
       // Check that appropriate log messages were called
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(consoleDebugSpy).toHaveBeenCalledWith(
         expect.stringContaining("startRun →")
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("📍 Action: logging-test")
+      expect(consoleDebugSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Action: logging-test")
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("🆔 Run ID: log-test-123")
+      expect(consoleDebugSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Run ID: log-test-123")
       );
     });
 
@@ -317,6 +333,9 @@ describe("handleRun", () => {
       });
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Unknown action: missing-action")
+      );
+      expect(consoleDebugSpy).toHaveBeenCalledWith(
         expect.stringContaining("Known actions: available-action")
       );
     });

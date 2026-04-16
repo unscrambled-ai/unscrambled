@@ -125,9 +125,9 @@ export class HttpProxyResponseError extends Error {
   constructor(response: HttpProxyResponse) {
     const requestId = getResponseRequestId(response);
     super(
-      `HttpProxyResponseError: ${response.status} ${response.statusText}${formatRequestIdSuffix(
-        requestId
-      )}`
+      `HttpProxyResponseError: ${response.status} ${
+        response.statusText
+      }${formatRequestIdSuffix(requestId)}`
     );
     this.response = response;
     this.requestId = requestId;
@@ -393,9 +393,9 @@ export const httpRequest: HttpRequest = async (props) => {
         // Non-retriable HTTP error → surface as HttpProxyResponseError so callers
         // can handle uniformly and we do not retry in our catch block below.
         console.error(
-          `<= ${response.status} ${response.statusText} (${elapsed}ms) [proxy]${formatRequestIdSuffix(
-            requestId
-          )}`
+          `<= ${response.status} ${
+            response.statusText
+          } (${elapsed}ms) [proxy]${formatRequestIdSuffix(requestId)}`
         );
         console.error("Response:", errorText);
         throw new HttpProxyResponseError({
@@ -423,9 +423,9 @@ export const httpRequest: HttpRequest = async (props) => {
         const elapsed = Date.now() - requestStartTime;
         const requestId = getResponseRequestId(proxyResponse);
         console.error(
-          `<= ${proxyResponse.status} ${proxyResponse.statusText} (${elapsed}ms)${formatRequestIdSuffix(
-            requestId
-          )}`
+          `<= ${proxyResponse.status} ${
+            proxyResponse.statusText
+          } (${elapsed}ms)${formatRequestIdSuffix(requestId)}`
         );
 
         const dataForLogging =

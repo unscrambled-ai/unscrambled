@@ -1,5 +1,13 @@
 # @unscrambled/sdk
 
+## 0.3.1
+
+### Patch Changes
+
+- 0c92c29: Improve SDK deploy diagnostics and deprecate legacy custom app builder helpers.
+
+  This release includes deploy API request IDs in retry logs and error messages to make troubleshooting easier, and marks the legacy custom app builder helpers as deprecated in favor of `defineCustomApp`.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @unscrambled/cli
 
+## 0.4.1
+
+### Patch Changes
+
+- 0c92c29: Improve CLI deploy and dev workflow reliability.
+
+  This release updates project creation to use the current starter repository, ensures `dev` builds before the initial deploy, clarifies the duplicate dev server error message, and removes duplicate deploy failure output.
+
 ## 0.4.0
 
 ### Minor Changes
